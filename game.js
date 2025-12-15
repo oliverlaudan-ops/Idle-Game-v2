@@ -1,9 +1,11 @@
 import { CurrencyManager } from './src/currencies.js';
+import { LayerManager } from './src/layers.js';  // ← Hinzufügen
 import { updateUI } from './src/ui.js';
 import { startGameLoop } from './src/gameLoop.js';
 
 export const game = {
-  currencies: new CurrencyManager()
+  currencies: new CurrencyManager(),
+  layers: new LayerManager()  // ← Hinzufügen
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -12,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <div id="currency-display">Punkte: 0</div>
     <button id="click-btn">Klicken (+1)</button>
     <div id="generators-container"></div>
+    <div id="layers-container"></div>  <!-- ← Für Layer-UI -->
   `;
   
   document.getElementById('click-btn').onclick = () => game.currencies.click();
