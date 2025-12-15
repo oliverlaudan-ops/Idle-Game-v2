@@ -1,12 +1,13 @@
-export function updateUI(currencies, layers) {
+export function updateUI(currencies) {
   document.getElementById('currency-display').textContent = 
-    `Punkte: ${currencies.points}`;
+    `Punkte: ${currencies.points} (Prod: ${currencies.productionPerSecond}/s)`;
   
   const generatorsDiv = document.getElementById('generators');
+  const cost = currencies.generatorCost();
   generatorsDiv.innerHTML = `
-    <button onclick="game.currencies.addGenerator()">
-      Generator kaufen (Kosten: ${game.currencies.points.generators * 10 + 10})
+    <div>Generator: ${currencies.generators} (${currencies.productionPerSecond}/s)</div>
+    <button onclick="game.currencies.buyGenerator()">
+      Kaufen (Kosten: ${cost})
     </button>
   `;
 }
-
