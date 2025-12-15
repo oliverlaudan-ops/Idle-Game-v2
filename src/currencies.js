@@ -3,14 +3,16 @@ export class CurrencyManager {
     this.value = 0;
     this.generators = 0;
     this.baseProduction = 1;
+    this.clickPower = 1;
+    this.generatorMultiplier = 1;
   }
 
   update(deltaTime) {
-    this.value += this.generators * this.baseProduction * deltaTime;
+    this.value += this.generators * this.baseProduction * this.generatorMultiplier * deltaTime;
   }
 
   click() {
-    this.value += 1;
+    this.value += this.clickPower;
   }
 
   buyGenerator() {
@@ -21,15 +23,26 @@ export class CurrencyManager {
     }
   }
 
-  get generatorCost() {
-    return Math.ceil(10 * Math.pow(1.15, this.generators));
+  buyClickUpgrade() {
+    const cost = this.clickUpgradeCost;
+    if (this.value >= cost) {
+      this.value -= cost;
+      this.clickPower *= 2;
+    }
   }
 
-  get points() {
-    return Math.floor(this.value);
+  buyGeneratorUpgrade() {
+    const cost = this.generatorUpgradeCost;
+    if (this.value >= cost) {
+      this.value -= cost;
+      this.generatorMultiplier *= 2;
+    }
   }
 
-  get productionPerSecond() {
-    return this.generators * this.baseProduction;
-  }
+  get generatorCost() { return Math.ceil(10 * Math.pow(1.15, this.generators)); }
+  get clickUpgradeCost() { return Math.ceil(250 * Math.pow(1.8, this.clickPower / 2 - 1)); }
+  get generatorUpgradeCost() { return Math.ceil(500 * Math.pow(2, this.generatorMultiplier / 2 - 1)); }
+
+  get points() { return Math.floor(this.value); }
+  get productionPerSecond() { return this.generators * this.baseProduction * this.generatorMultiplier; }
 }
