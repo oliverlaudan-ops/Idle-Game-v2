@@ -1,8 +1,8 @@
 export class CurrencyManager {
   constructor() {
-    this.value = 0;          // aktuelle Punkte
-    this.generators = 0;     // Anzahl Generatoren
-    this.baseProduction = 1; // Punkte pro Generator und Sekunde
+    this.value = 0;
+    this.generators = 0;
+    this.baseProduction = 1;
   }
 
   update(deltaTime) {
@@ -21,7 +21,6 @@ export class CurrencyManager {
     }
   }
 
-  // Kostenformel: 10 * 1.15^n, aufgerundet
   get generatorCost() {
     return Math.ceil(10 * Math.pow(1.15, this.generators));
   }
