@@ -1,3 +1,4 @@
+// deployment Test
 import { CurrencyManager } from './src/currencies.js';
 import { LayerManager } from './src/layers.js';
 import { updateUI } from './src/ui.js';
