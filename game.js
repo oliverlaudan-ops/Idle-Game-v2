@@ -20,12 +20,17 @@ document.addEventListener('DOMContentLoaded', () => {
       <div id="generators-info" style="margin-bottom :10px"></div>
       <button id="buy-generator-btn" type="button">Generator kaufen</button>
     </div>
-
+    <div id="upgrades-container">
+    <div id="upgrades-info"></div>
+    </div>
+    
     <div id="layers-container"></div>
   `;
 
   document.getElementById('click-btn').onclick = () => game.currencies.click();
   document.getElementById('buy-generator-btn').onclick = () => game.currencies.buyGenerator();
+  document.getElementById('buy-click-upgrade-btn').onclick = () => game.currencies.buyClickUpgrade();
+  document.getElementById('buy-generator-upgrade-btn').onclick = () => game.currencies.buyGeneratorUpgrade();
 
   // Erstes UI-Update
   updateUI(game);
