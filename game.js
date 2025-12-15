@@ -8,7 +8,6 @@ export const game = {
   layers: new LayerManager()
 };
 
-// WICHTIG: direkt nach der Definition
 window.game = game;
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -16,12 +15,19 @@ document.addEventListener('DOMContentLoaded', () => {
   container.innerHTML = `
     <div id="currency-display">Punkte: 0</div>
     <button id="click-btn" type="button">Klicken (+1)</button>
-    <div id="generators-container"></div>
+
+    <div id="generators-container">
+      <div id="generators-info"></div>
+      <button id="buy-generator-btn" type="button">Generator kaufen</button>
+    </div>
+
     <div id="layers-container"></div>
   `;
 
   document.getElementById('click-btn').onclick = () => game.currencies.click();
+  document.getElementById('buy-generator-btn').onclick = () => game.currencies.buyGenerator();
 
+  // Erstes UI-Update
   updateUI(game);
 
   const gameLoop = startGameLoop(game, updateUI);
