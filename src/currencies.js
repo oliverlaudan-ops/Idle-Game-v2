@@ -1,30 +1,23 @@
 export class CurrencyManager {
   constructor() {
-    this.currencies = { points: { value: 0, generators: 0, baseProduction: 1 } };
+    this.value = 0;
+    this.generators = 0;
+    this.baseProduction = 1;
   }
 
   update(deltaTime) {
-    const points = this.currencies.points;
-    points.value += points.generators * points.baseProduction * deltaTime;
+    this.value += this.generators * this.baseProduction * deltaTime;
   }
 
-  click() { this.currencies.points.value += 1; }
-
-  buyGenerator() {
-    const cost = this.generatorCost();
-    if (this.currencies.points.value >= cost) {
-      this.currencies.points.value -= cost;
-      this.currencies.points.generators += 1;
-    }
+  click() {
+    this.value += 1;
   }
 
-  generatorCost() {
-    return Math.floor((this.currencies.points.generators + 1) * 10);
+  get points() {
+    return Math.floor(this.value);
   }
 
-  get points() { return Math.floor(this.currencies.points.value); }
-  get generators() { return this.currencies.points.generators.toFixed(1); }
-  get productionPerSecond() { 
-    return (this.currencies.points.generators * this.currencies.points.baseProduction).toFixed(1); 
+  get productionPerSecond() {
+    return this.generators * this.baseProduction;
   }
 }
