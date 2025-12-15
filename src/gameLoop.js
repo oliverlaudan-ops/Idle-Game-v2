@@ -1,11 +1,13 @@
 export function startGameLoop(game, updateUI) {
-  let lastTime = 0;
+  let lastTime = performance.now();
 
   function loop(time) {
     const delta = Math.min((time - lastTime) / 1000, 0.1);
+    lastTime = time;
+
     game.currencies.update(delta);
     updateUI(game);
-    lastTime = time;
+
     requestAnimationFrame(loop);
   }
 
