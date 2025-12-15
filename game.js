@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <button id="click-btn" type="button">Klicken (+1)</button>
 
     <div id="generators-container">
-      <div id="generators-info" style="margin-bottom = 10px"></div>
+      <div id="generators-info" style="margin-bottom :10px"></div>
       <button id="buy-generator-btn" type="button">Generator kaufen</button>
     </div>
 
