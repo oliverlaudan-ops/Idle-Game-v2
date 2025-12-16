@@ -6,6 +6,7 @@ export function startGameLoop(game, updateUI) {
     lastTime = time;
 
     game.currencies.update(delta);
+    game.layers.checkUnlocks();
     updateUI(game);
 
     requestAnimationFrame(loop);
