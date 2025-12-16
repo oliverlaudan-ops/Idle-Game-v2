@@ -83,4 +83,9 @@ export class CurrencyManager {
   get productionPerSecond() { 
     return this.generators * this.baseProduction * this.generatorMultiplier; 
   }
+
+  get totalProductionPerSecond() {
+    return this.generators * this.baseProduction * this.generatorMultiplier * this.prestigeMultiplier;
+  }
+
 }
