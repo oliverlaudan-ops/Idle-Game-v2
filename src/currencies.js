@@ -5,6 +5,8 @@ export class CurrencyManager {
     this.baseProduction = 1;
     this.clickPower = 1;
     this.generatorMultiplier = 1;
+    this.prestigePoints = 0;  // ← NEU
+    this.prestigeMultiplier = 1; // ← NEU
   }
 
   update(deltaTime) {
@@ -37,6 +39,32 @@ export class CurrencyManager {
       this.value -= cost;
       this.generatorMultiplier *= 2;
     }
+  }
+
+  prestigeReset() {
+    const prestigeGain = Math.floor(Math.sqrt(this.value / 1000));
+    if (prestigeGain > 0) {
+      this.prestigePoints += prestigeGain;
+      this.prestigeMultiplier = 1 + (this.prestigePoints * 0.1);
+      // Layer 1 reset
+      this.value = 0;
+      this.generators = 0;
+      this.clickPower = 1;
+      this.generatorMultiplier = 1;
+    }
+  }
+
+  update(deltaTime) {
+    // ALLE Produktionen * Prestige-Multi
+    this.value += this.generators * this.baseProduction * this.generatorMultiplier * this.prestigeMultiplier * deltaTime;
+  }
+
+  click() {
+    this.value += this.clickPower * this.prestigeMultiplier;
+  }
+
+  get prestigeGain() {
+    return Math.floor(Math.sqrt(this.value / 1000));
   }
 
   get generatorCost() { 
