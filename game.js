@@ -29,11 +29,11 @@ document.addEventListener('DOMContentLoaded', () => {
     <div id="layers-container"></div>
   `;
 
-  // Event Handler 
+  // NUR Event Handler für statische Buttons (die wirklich existieren)
   document.getElementById('click-btn').onclick = () => game.currencies.click();
   document.getElementById('buy-generator-btn').onclick = () => game.currencies.buyGenerator();
-  document.getElementById('buy-click-upgrade-btn').onclick = () => game.currencies.buyClickUpgrade();
-  document.getElementById('buy-generator-upgrade-btn').onclick = () => game.currencies.buyGeneratorUpgrade();
+
+  // ❌ Upgrade-Buttons dynamisch → KEINE Handler hier!
 
   updateUI(game);
   const gameLoop = startGameLoop(game, updateUI);
