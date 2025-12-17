@@ -3,6 +3,7 @@
  * Zentrales Achievement-Management
  */
 
+import { Achievement } from './achievement-class.js';
 import achievementsList from './achievements-list.js';
 import gameState from './game-state.js';
 
