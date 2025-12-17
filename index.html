@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Idle Game v2 – Space Colonies</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Haupt-Styles -->
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" type="image/png" href="../favicon.png">
+</head>
+<body>
+  <div id="app">
+
+    <!-- Top-Bar: Ressourcen / Meta -->
+    <header class="stats-bar" id="statsBar">
+      <!-- Wird komplett von ui-render.js gefüllt -->
+    </header>
+
+    <main class="layout">
+      <!-- Linke Spalte: Aktionen -->
+      <section class="actions" id="actions">
+        <!-- Buttons zum Sammeln / Aktionen, wird von ui-render.js gefüllt -->
+      </section>
+
+      <!-- Rechte Spalte: Tabs + Grids -->
+      <section class="upgrades-panel">
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="upgrades">Upgrades</button>
+          <button class="tab-btn" data-tab="research">Forschung</button>
+          <button class="tab-btn" data-tab="achievements">Erfolge</button>
+        </div>
+
+        <div class="tab-content">
+          <!-- Normale Upgrades -->
+          <div class="upgrade-grid" id="upgradeGrid" data-tab="upgrades"></div>
+
+          <!-- Forschungs-Upgrades -->
+          <div class="upgrade-grid" id="researchGrid" data-tab="research" style="display:none;"></div>
+
+          <!-- Achievements -->
+          <div id="achievementsContainer" data-tab="achievements" style="display:none;"></div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Save / Import / Reset Bereich -->
+    <section class="save-panel">
+      <div class="save-controls">
+        <button id="exportBtn">Export</button>
+        <button id="importBtn">Import</button>
+        <button id="resetBtn">Reset</button>
+      </div>
+      <textarea id="saveString" rows="2" placeholder="Speicherstring hier einfügen oder kopieren"></textarea>
+    </section>
+  </div>
+
+  <!-- Einstiegspunkt – wichtig: Pfad relativ zum HTML -->
+  <script type="module" src="../main.js"></script>
+</body>
+</html>
