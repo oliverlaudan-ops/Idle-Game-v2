@@ -1,12 +1,15 @@
-/**
- * main.js
- * Entry-Point - Koordiniert alle Module und startet das Spiel
- */
+// main.js – Entry Point (v2)
 
-import Game from './game-core.js';
-import { initializeGame } from './ui-init.js';
-import gameState from './game-state.js';
-import { calculateOfflineProgress, applyOfflineProgress, formatDuration, shouldShowOfflineProgress } from './offline-progress.js'; // ← NEU
+import Game from './src/modules/core.js';
+import { initializeGame } from './src/ui/ui-init.js';
+
+import gameState from './src/modules/game-state.js';
+import {
+  calculateOfflineProgress,
+  applyOfflineProgress,
+  formatDuration,
+  shouldShowOfflineProgress
+} from './src/modules/offline-progress.js';
 
 // ========== Global Game Instance ==========
 
