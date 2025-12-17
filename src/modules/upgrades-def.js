@@ -1,1 +1,2 @@
 // Upgrades-Definitionen
+export default [];
