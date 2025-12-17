@@ -1,1 +1,3 @@
 // Ressourcen-Definitionen
+
+export default [];
