@@ -1,1 +1,2 @@
 // Forschung-Definitionen
+export default [];
