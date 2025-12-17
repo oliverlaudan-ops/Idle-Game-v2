@@ -208,6 +208,27 @@ button:active {
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
 }
 
+.save-btn {
+  /* optional: leicht kleiner als normale Buttons */
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
+.save-textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 60px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #2b3148;
+  background: #050711;
+  color: var(--text-main);
+  font-family: monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+}
+
 /* Optional: Hover/Focus für bessere Integration */
 #saveString:focus {
   outline: none;
