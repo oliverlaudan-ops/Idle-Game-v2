@@ -12,7 +12,7 @@ import {
   showAchievementNotification
 } from './ui-render.js';
 
-import gameState from './src/modules/game-state.js';
+import gameState from '../src/modules/game-state.js';
 
 // ========== DOM Setup ==========
 
