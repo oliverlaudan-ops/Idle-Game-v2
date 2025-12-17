@@ -176,3 +176,20 @@ button:active {
 .card {
   background: var(--bg-panel-soft);
   border-radius
+
+/* Save Textbox */
+.save-panel {
+  margin-top: 16px;
+  padding: 10px;
+  background: rgba(7, 9, 18, 0.9);
+  border-radius: 10px;
+  border: 1px dashed #2b3148;
+}
+
+.save-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+  
