@@ -128,7 +128,12 @@ class Game {
   // ========== Upgrade/Building Management ==========
   
   initializeUpgrades() {
-    this.upgradeDefinitions = upgradeDefinitions.map(def => ({...def}));
+    // Erstelle NEUE Kopien der Upgrade-Definitionen
+    this.upgradeDefinitions = upgradeDefinitions.map(def => ({
+      ...def,
+      // Stelle sicher dass unlocked vom Original kommt
+      unlocked: def.unlocked || false
+    }));
     
     // Initialisiere Counts
     for (const def of this.upgradeDefinitions) {
@@ -224,7 +229,12 @@ class Game {
   // ========== Research Management ==========
   
   initializeResearch() {
-    this.researchDefinitions = researchDefinitions.map(def => ({...def}));
+    // Erstelle NEUE Kopien der Research-Definitionen
+    this.researchDefinitions = researchDefinitions.map(def => ({
+      ...def,
+      // Stelle sicher dass unlocked vom Original kommt
+      unlocked: def.unlocked || false
+    }));
   }
   
   getResearchDefinition(researchId) {
@@ -537,6 +547,10 @@ class Game {
   }
 
   syncFromState() {
+    console.log('📥 Lade Spielstand...');
+    console.log('gameState.upgrades:', gameState.upgrades);
+    console.log('gameState.resources:', Object.keys(gameState.resources || {}).length, 'Ressourcen');
+    
     // Ressourcen laden
     if (gameState.resources) {
       for (const [id, data] of Object.entries(gameState.resources)) {
@@ -548,14 +562,24 @@ class Game {
       }
     }
     
-    // Upgrades laden
+    // Upgrades laden - WICHTIG: Erst Definitions neu initialisieren!
+    this.initializeUpgrades();
+    
     if (gameState.upgrades) {
       this.upgrades = {...gameState.upgrades};
+      console.log('✅ Upgrades geladen:', Object.keys(this.upgrades).filter(k => this.upgrades[k] > 0));
+    } else {
+      console.log('ℹ️ Keine Upgrades im State vorhanden');
     }
     
-    // Forschung laden
+    // Forschung laden - WICHTIG: Erst Definitions neu initialisieren!
+    this.initializeResearch();
+    
     if (gameState.completedResearch) {
       this.completedResearch = [...gameState.completedResearch];
+      console.log('✅ Forschungen geladen:', this.completedResearch.length);
+    } else {
+      console.log('ℹ️ Keine Forschungen im State vorhanden');
     }
     
     // Prestige-Upgrades laden
@@ -590,6 +614,8 @@ class Game {
     this.checkResourceUnlocks();
     this.checkUpgradeUnlocks();
     this.checkResearchUnlocks();
+    
+    console.log('✅ Spielstand vollständig geladen');
   }
 
   // ========== Prestige Logic ==========
