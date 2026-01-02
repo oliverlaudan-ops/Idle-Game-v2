@@ -1,21 +1,20 @@
 /**
  * ui-render.js
- * Alle Rendering- und Formatierungsfunktionen
+ * Alle Rendering- und Formatierungsfunktionen für Space Colonies
  */
 
 import gameState from '../src/modules/game-state.js';
-import { getEffectivePrestigeBonus } from '../src/modules/prestige.js';
+import { calculateUpgradeCost } from '../src/modules/upgrades-def.js';
 import achievementManager from '../src/modules/achievement-manager.js';
 
 // Achievement-Notification Queue
 let achievementQueue = [];
 let isShowingAchievement = false;
 
-
 // ========== Formatierungs-Hilfsfunktionen ==========
 
 export function formatAmount(n) {
-  if (n >= 1_000_000_000) return (n / 1_000_000_000).toFixed(2) + 'G'
+  if (n >= 1_000_000_000) return (n / 1_000_000_000).toFixed(2) + 'G';
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(2) + 'M';
   if (n >= 1_000) return (n / 1_000).toFixed(2) + 'K';
   return n.toFixed(0);
@@ -24,6 +23,7 @@ export function formatAmount(n) {
 export function formatRate(n) {
   const abs = Math.abs(n);
   if (abs === 0) return '0';
+  if (abs < 0.01) return n.toFixed(4);
   if (abs < 1) return n.toFixed(2);
   if (abs < 1000) return n.toFixed(1);
   return formatAmount(n);
@@ -36,56 +36,6 @@ function formatPlaytime(seconds) {
   return `${m}m`;
 }
 
-// Buy-Mode button Hilfsfunktion
-function getMaxAffordableLevels(game, upg) {
-  const res = game.getResource(upg.costRes);
-  if (!res) return 0;
-
-  const currentAmount = res.amount;
-  const base = upg.costBase;
-  const mult = upg.costMult || 1;
-
-  // Fallback für mult <= 1: defensiv linear hochzählen
-  if (mult <= 1) {
-    let count = 0;
-    let cost = upg.getCurrentCost();
-    let remaining = currentAmount;
-    while (remaining >= cost && count < 1000) {
-      remaining -= cost;
-      count++;
-    }
-    return count;
-  }
-
-  const level = upg.level || 0;
-  const factor = Math.pow(mult, level);
-  const A = base * factor;
-  const B = mult;
-
-  const sumCost = (k) => {
-    if (k <= 0) return 0;
-    return A * (Math.pow(B, k) - 1) / (B - 1);
-  };
-
-  let low = 0;
-  let high = 1;
-
-  while (sumCost(high) <= currentAmount && high < 1e6) {
-    high *= 2;
-  }
-
-  while (low < high) {
-    const mid = Math.floor((low + high + 1) / 2);
-    if (sumCost(mid) <= currentAmount) {
-      low = mid;
-    } else {
-      high = mid - 1;
-    }
-  }
-
-  return low;
-}
-
 // ========== Stats Bar Rendering ==========
 
 export function renderStatsBar(game) {
@@ -93,31 +43,48 @@ export function renderStatsBar(game) {
   
   game.statsBarEl.innerHTML = '';
   
-  const resList = Object.values(game.resources).filter(r => r.unlocked);
+  // Nur freigeschaltete Ressourcen anzeigen
+  const unlockedResources = Object.values(game.resources)
+    .filter(r => r.unlocked)
+    .sort((a, b) => {
+      // Sortierung: energy zuerst, dann nach category
+      if (a.id === 'energy') return -1;
+      if (b.id === 'energy') return 1;
+      return 0;
+    });
   
-  resList.forEach(r => {
+  unlockedResources.forEach(resource => {
     const pill = document.createElement('div');
     pill.className = 'stat-pill';
-    pill.id = 'stat-' + r.id;
+    pill.id = 'stat-' + resource.id;
     
     const label = document.createElement('span');
     label.className = 'label';
-    label.textContent = `${r.icon} ${r.name}: ${formatAmount(r.amount)}`;
+    label.textContent = `${resource.icon} ${resource.name}: ${formatAmount(resource.amount)}`;
     
     const details = document.createElement('span');
     details.className = 'details';
-    details.textContent = `+${formatRate(r.rps)}/s, +${formatRate(r.rpc)}/Klick`;
+    
+    // Click-Ressource bekommt Click-Wert angezeigt
+    if (resource.clickValue > 0) {
+      const clickTotal = resource.clickValue + (game.prestigeBonuses?.clickPower || 0);
+      details.textContent = `+${formatRate(resource.perSecond)}/s, +${formatRate(clickTotal)}/klick`;
+    } else {
+      details.textContent = `+${formatRate(resource.perSecond)}/s`;
+    }
     
     pill.appendChild(label);
     pill.appendChild(details);
     game.statsBarEl.appendChild(pill);
   });
   
-  // Meta-Informationen
-  const meta = document.createElement('div');
-  meta.className = 'stat-meta';
-  meta.textContent = `Tick: ${(game.tickMs / 1000).toFixed(1)}s`;
-  game.statsBarEl.appendChild(meta);
+  // Platz-Anzeige
+  const spacePill = document.createElement('div');
+  spacePill.className = 'stat-pill stat-space';
+  spacePill.innerHTML = `
+    <span class="label">🏗️ Bauplätze: ${game.usedSpace} / ${game.maxSpace}</span>
+  `;
+  game.statsBarEl.appendChild(spacePill);
   
   updateActionsStickyTop();
 }
@@ -129,30 +96,28 @@ export function renderActions(game) {
   
   game.actionsEl.innerHTML = '';
   
-  Object.values(game.resources)
-    .filter(r => r.unlocked)
-    .forEach(r => {
-      const btn = document.createElement('button');
-      btn.className = `action-btn ${r.id}`;
-      btn.id = r.id + 'Btn';
-      btn.textContent = `${r.icon} ${r.name} sammeln (+${formatRate(r.rpc)})`;
-      
-      btn.onclick = () => {
-        const mult = getEffectivePrestigeBonus(gameState);
-        r.add(r.rpc * mult);
-        
-        // Klick-Counter erhöhen
-        game.totalClicks++;
-        
-        renderStatsBar(game);
-        renderUpgrades(game);
-        
-        // Achievements prüfen
-        game.checkAchievements();
-      };
-      
-      game.actionsEl.appendChild(btn);
-    });
+  // Nur Energie ist klickbar
+  const energyResource = game.resources.energy;
+  if (energyResource && energyResource.unlocked) {
+    const btn = document.createElement('button');
+    btn.className = 'action-btn energy';
+    btn.id = 'energyBtn';
+    
+    let clickValue = energyResource.clickValue || 1;
+    if (game.prestigeBonuses) {
+      clickValue += game.prestigeBonuses.clickPower;
+      clickValue *= (1 + game.prestigeBonuses.clickMultiplier);
+    }
+    
+    btn.textContent = `⚡ Energie sammeln (+${formatRate(clickValue)})`;
+    
+    btn.onclick = () => {
+      game.handleClick('energy');
+      renderStatsBar(game);
+    };
+    
+    game.actionsEl.appendChild(btn);
+  }
   
   updateActionsStickyTop();
 }
@@ -160,264 +125,288 @@ export function renderActions(game) {
 // ========== Upgrades Rendering ==========
 
 export function renderUpgrades(game) {
-  if (!game.upgradeGridEl || !game.researchGridEl) return;
+  if (!game.upgradeGridEl) return;
   
   game.upgradeGridEl.innerHTML = '';
-  game.researchGridEl.innerHTML = '';
   
-  // Upgrades nach Typ trennen
-  const normalUpgrades = game.upgrades.filter(u => !u.research);
-  const researchUpgrades = game.upgrades.filter(u => u.research);
+  // Gruppiere Gebäude nach Typ
+  const generators = [];
+  const efficiency = [];
+  const space = [];
+  const click = [];
+  const unlock = [];
   
-  // Normale Upgrades gruppieren
-  const grouped = {};
-  for (const upg of normalUpgrades) {
-    if (upg.single && upg.unlocksResourceId) {
-      grouped.unlock = grouped.unlock || [];
-      grouped.unlock.push(upg);
-    } else {
-      const key = upg.costRes || 'Sonstige';
-      grouped[key] = grouped[key] || [];
-      grouped[key].push(upg);
+  for (const def of game.upgradeDefinitions) {
+    if (!def.unlocked) continue;
+    
+    switch (def.type) {
+      case 'generator':
+        generators.push(def);
+        break;
+      case 'efficiency':
+        efficiency.push(def);
+        break;
+      case 'space':
+        space.push(def);
+        break;
+      case 'click':
+        click.push(def);
+        break;
+      case 'unlock':
+        unlock.push(def);
+        break;
     }
   }
   
-  // Freischaltungen zuerst rendern
-  if (grouped.unlock && grouped.unlock.length > 0) {
+  // Spalte für Generatoren
+  if (generators.length > 0) {
     const col = document.createElement('div');
-    col.className = 'upgrade-col upgrade-unlock-col';
+    col.className = 'upgrade-col';
     
     const header = document.createElement('h4');
-    header.textContent = 'Freischaltungen';
+    header.textContent = '🏭 Gebäude';
     col.appendChild(header);
     
-    grouped.unlock.forEach(upg => col.appendChild(createUpgradeCard(game, upg)));
+    generators.forEach(def => {
+      col.appendChild(createUpgradeCard(game, def));
+    });
+    
     game.upgradeGridEl.appendChild(col);
   }
   
-  // Restliche normale Upgrades nach Ressource
-  for (const [res, arr] of Object.entries(grouped)) {
-    if (res === 'unlock') continue;
+  // Spalte für Upgrades (Effizienz, Click, Platz)
+  const upgradesList = [...efficiency, ...click, ...space];
+  if (upgradesList.length > 0) {
+    const col = document.createElement('div');
+    col.className = 'upgrade-col';
+    
+    const header = document.createElement('h4');
+    header.textContent = '⬆️ Verbesserungen';
+    col.appendChild(header);
+    
+    upgradesList.forEach(def => {
+      col.appendChild(createUpgradeCard(game, def));
+    });
+    
+    game.upgradeGridEl.appendChild(col);
+  }
+}
+
+// ========== Research Rendering ==========
+
+export function renderResearch(game) {
+  if (!game.researchGridEl) return;
+  
+  game.researchGridEl.innerHTML = '';
+  
+  // Gruppiere nach Tier
+  const tiers = { 1: [], 2: [], 3: [] };
+  
+  for (const def of game.researchDefinitions) {
+    if (!def.unlocked) continue;
+    if (game.isResearchCompleted(def.id)) continue; // Bereits erforscht
+    
+    tiers[def.tier].push(def);
+  }
+  
+  // Zeige jedes Tier in eigener Spalte
+  for (const [tier, researches] of Object.entries(tiers)) {
+    if (researches.length === 0) continue;
     
     const col = document.createElement('div');
     col.className = 'upgrade-col';
     
     const header = document.createElement('h4');
-    header.textContent = res.charAt(0).toUpperCase() + res.slice(1);
+    header.textContent = `🔬 Tier ${tier} Forschung`;
     col.appendChild(header);
     
-    arr.forEach(upg => col.appendChild(createUpgradeCard(game, upg)));
-    game.upgradeGridEl.appendChild(col);
+    researches.forEach(def => {
+      col.appendChild(createResearchCard(game, def));
+    });
+    
+    game.researchGridEl.appendChild(col);
   }
   
-  // Forschungs-Upgrades nach costRes gruppieren
-  const researchByRes = {};
-  for (const upg of researchUpgrades) {
-    const key = upg.costRes || 'sonstige';
-    if (!researchByRes[key]) researchByRes[key] = [];
-    researchByRes[key].push(upg);
-  }
-  
-  for (const [res, arr] of Object.entries(researchByRes)) {
+  // Zeige abgeschlossene Forschungen
+  const completed = game.researchDefinitions.filter(r => game.isResearchCompleted(r.id));
+  if (completed.length > 0) {
     const col = document.createElement('div');
     col.className = 'upgrade-col';
     
     const header = document.createElement('h4');
-  
-    const titleSpan = document.createElement('span');
-    titleSpan.textContent = res.charAt(0).toUpperCase() + res.slice(1) + ' Forschung';
-  
-    const info = document.createElement('span');
-    info.className = 'info-icon';
-    info.textContent = 'i';
-    info.title = 'Forschung verstärkt bestehende Produktion und skaliert mit deiner aktuellen RPS.';
-  
-    header.appendChild(titleSpan);
-    header.appendChild(info);
-    
+    header.innerHTML = `✅ Erforscht (${completed.length})`;
     col.appendChild(header);
     
-    arr.forEach(upg => col.appendChild(createUpgradeCard(game, upg)));
+    completed.forEach(def => {
+      const card = document.createElement('div');
+      card.className = 'card completed';
+      card.innerHTML = `
+        <h3>${def.icon} ${def.name}</h3>
+        <p class="muted">${def.description}</p>
+      `;
+      col.appendChild(card);
+    });
+    
     game.researchGridEl.appendChild(col);
   }
 }
 
 // ========== Upgrade Card Creation ==========
-export function createUpgradeCard(game, upg) {
-  const costRes = game.getResource(upg.costRes);
+
+function createUpgradeCard(game, def) {
   const card = document.createElement('div');
   card.className = 'card';
-
+  
+  const currentCount = game.getUpgradeCount(def.id);
+  
   // Titel
   const title = document.createElement('h3');
-  title.textContent = upg.name;
-
+  title.textContent = `${def.icon} ${def.name}`;
+  
   // Beschreibung
   const desc = document.createElement('p');
-  desc.textContent = upg.desc;
-
-  // Kosten-Element
+  desc.textContent = def.description;
+  
+  // Kosten
+  const cost = calculateUpgradeCost(def, currentCount);
   const costP = document.createElement('p');
-
-  // Buy-Mode nur für nicht-single Upgrades initialisieren
-  if (!upg.single && !upg.buyMode) {
-    upg.buyMode = 'x1';
+  const costParts = [];
+  for (const [resourceId, amount] of Object.entries(cost)) {
+    const resource = game.resources[resourceId];
+    if (resource) {
+      costParts.push(`${formatAmount(amount)} ${resource.icon}`);
+    }
   }
-
-  function updateCostText() {
-    if (!costRes) {
-      costP.textContent = '';
-      return;
-    }
-
-    // Single-Upgrades: immer Einzelkosten
-    if (upg.single) {
-      const cost1 = upg.getCurrentCost();
-      costP.textContent = `Kosten: ${formatAmount(cost1)} ${costRes.name}`;
-      return;
-    }
-
-    const mode = upg.buyMode || 'x1';
-
-    if (mode === 'x1') {
-      const cost1 = upg.getCurrentCost();
-      costP.textContent = `Kosten: ${formatAmount(cost1)} ${costRes.name}`;
-      return;
-    }
-
-    // Levels je nach Modus
-    let levels = 1;
-    if (mode === 'x10') {
-      levels = 10;
-    } else if (mode === 'max') {
-      levels = getMaxAffordableLevels(game, upg);
-      if (levels <= 0) levels = 0;
-    }
-
-    if (levels <= 0) {
-      const cost1 = upg.getCurrentCost();
-      costP.textContent = `Kosten: ${formatAmount(cost1)} ${costRes.name}`;
-      return;
-    }
-
-    const base = upg.costBase;
-    const mult = upg.costMult || 1;
-    const level = upg.level || 0;
-
-    let totalCost;
-    if (mult <= 1) {
-      totalCost = base * levels;
-    } else {
-      const factor = Math.pow(mult, level);
-      const A = base * factor;
-      totalCost = A * (Math.pow(mult, levels) - 1) / (mult - 1);
-    }
-
-    costP.textContent =
-      `Kosten (${mode.toUpperCase()}): ${formatAmount(totalCost)} ${costRes.name}`;
+  costP.textContent = `Kosten: ${costParts.join(', ')}`;
+  
+  // Owned/Platz-Info
+  const info = document.createElement('p');
+  info.className = 'muted';
+  
+  if (def.type === 'generator') {
+    info.textContent = `Stufe: ${currentCount} | Größe: ${def.size}`;
+  } else if (def.maxCount !== -1) {
+    info.textContent = `Stufe: ${currentCount} / ${def.maxCount}`;
+  } else {
+    info.textContent = `Stufe: ${currentCount}`;
   }
-
-  // Initiale Kostenanzeige
-  updateCostText();
-
-  // Besitzstatus
-  const owned = document.createElement('p');
-  owned.className = 'muted';
-  owned.textContent = upg.single
-    ? (upg.level > 0 ? 'Einmalig – bereits gekauft' : 'Einmalig')
-    : `Stufe: ${upg.level}`;
-
-  // Buy-Mode-Leiste nur für nicht-single Upgrades
-  let modeBar = null;
-  if (!upg.single) {
-    modeBar = document.createElement('div');
-    modeBar.className = 'buy-mode-bar';
-
-    const modes = [
-      { key: 'x1',  label: 'x1' },
-      { key: 'x10', label: 'x10' },
-      { key: 'max', label: 'Max' }
-    ];
-
-    modes.forEach(m => {
-      const mBtn = document.createElement('button');
-      mBtn.type = 'button';
-      mBtn.className = 'buy-mode-btn' + (upg.buyMode === m.key ? ' active' : '');
-      mBtn.textContent = m.label;
-      mBtn.onclick = (e) => {
-        e.stopPropagation();
-        upg.buyMode = m.key;
-        if (modeBar) {
-          modeBar.querySelectorAll('.buy-mode-btn').forEach(b => b.classList.remove('active'));
-        }
-        mBtn.classList.add('active');
-        updateCostText();
-      };
-      modeBar.appendChild(mBtn);
-    });
+  
+  // Produktion anzeigen (bei Generatoren)
+  if (def.produces && currentCount > 0) {
+    const prodP = document.createElement('p');
+    prodP.className = 'production-info';
+    const prodParts = [];
+    for (const [resourceId, amount] of Object.entries(def.produces)) {
+      const resource = game.resources[resourceId];
+      if (resource) {
+        const totalProd = amount * currentCount; // Wird später mit Boni multipliziert
+        prodParts.push(`+${formatRate(totalProd)} ${resource.icon}/s`);
+      }
+    }
+    prodP.textContent = `Produziert: ${prodParts.join(', ')}`;
+    desc.after(prodP);
   }
-
+  
   // Kauf-Button
   const btn = document.createElement('button');
   btn.className = 'buy-btn';
-
-  const canBuy = upg.canBuy(game);
+  
+  const canBuy = game.canBuyUpgrade(def.id);
   btn.disabled = !canBuy;
-  btn.textContent = upg.single && upg.level > 0
-    ? 'Gekauft'
-    : (canBuy ? 'Kaufen' : 'Nicht genug');
-
+  
+  if (def.maxCount !== -1 && currentCount >= def.maxCount) {
+    btn.textContent = 'Maximum erreicht';
+    btn.disabled = true;
+  } else if (def.size > 0 && game.usedSpace + def.size > game.maxSpace) {
+    btn.textContent = 'Kein Platz';
+    btn.disabled = true;
+  } else {
+    btn.textContent = canBuy ? 'Kaufen' : 'Nicht genug';
+  }
+  
   btn.onclick = () => {
-    if (upg.single && upg.level > 0) return;
-
-    let timesToBuy = 1;
-    if (!upg.single) {
-      if (upg.buyMode === 'x10') {
-        timesToBuy = 10;
-      } else if (upg.buyMode === 'max') {
-        timesToBuy = getMaxAffordableLevels(game, upg);
-      }
-    }
-
-    if (timesToBuy <= 0) return;
-
-    let bought = 0;
-    for (let i = 0; i < timesToBuy; i++) {
-      if (!upg.canBuy(game)) break;
-      if (!upg.buy(game)) break;
-      bought++;
-      if (upg.single) break;
-    }
-
-    if (bought > 0) {
-      game.recalculateResourceBonuses();
+    if (game.buyUpgrade(def.id)) {
       renderAll(game);
-      game.checkAchievements();
     }
   };
-
-  // Card zusammenbauen
+  
+  // Fortschrittsbalken
+  const hasProgress = Object.entries(cost).some(([resId, amount]) => {
+    const resource = game.resources[resId];
+    return resource && resource.amount < amount;
+  });
+  
+  if (hasProgress) {
+    const mainCost = Object.entries(cost)[0];
+    if (mainCost) {
+      const [resId, amount] = mainCost;
+      const resource = game.resources[resId];
+      if (resource) {
+        const percent = Math.min(100, (resource.amount / amount) * 100);
+        const progressBar = document.createElement('div');
+        progressBar.className = 'progress-bar';
+        const progress = document.createElement('div');
+        progress.className = 'progress';
+        progress.style.width = percent + '%';
+        progressBar.appendChild(progress);
+        card.appendChild(progressBar);
+      }
+    }
+  }
+  
   card.appendChild(title);
   card.appendChild(desc);
   card.appendChild(costP);
-  card.appendChild(owned);
-  if (modeBar) card.appendChild(modeBar); // nur bei mehrfachen Upgrades
+  card.appendChild(info);
   card.appendChild(btn);
+  
+  return card;
+}
 
-  // Progress-Bar (wie bisher)
-  if (costRes) {
-    const current = costRes.amount;
-    const nextCost = upg.getCurrentCost();
-    const percent = Math.min(100, (current / nextCost) * 100);
-    const progressBar = document.createElement('div');
-    progressBar.className = 'progress-bar';
-    const progress = document.createElement('div');
-    progress.className = 'progress';
-    progress.style.width = percent + '%';
-    progressBar.appendChild(progress);
-    card.appendChild(progressBar);
+// ========== Research Card Creation ==========
+
+function createResearchCard(game, def) {
+  const card = document.createElement('div');
+  card.className = 'card research-card';
+  
+  // Titel
+  const title = document.createElement('h3');
+  title.textContent = `${def.icon} ${def.name}`;
+  
+  // Beschreibung
+  const desc = document.createElement('p');
+  desc.textContent = def.description;
+  
+  // Kosten
+  const costP = document.createElement('p');
+  const costParts = [];
+  for (const [resourceId, amount] of Object.entries(def.cost)) {
+    const resource = game.resources[resourceId];
+    if (resource) {
+      costParts.push(`${formatAmount(amount)} ${resource.icon}`);
+    }
   }
-
+  costP.textContent = `Kosten: ${costParts.join(', ')}`;
+  
+  // Kauf-Button
+  const btn = document.createElement('button');
+  btn.className = 'buy-btn';
+  
+  const canResearch = game.canResearch(def.id);
+  btn.disabled = !canResearch;
+  btn.textContent = canResearch ? 'Erforschen' : 'Nicht genug';
+  
+  btn.onclick = () => {
+    if (game.performResearch(def.id)) {
+      renderAll(game);
+    }
+  };
+  
+  card.appendChild(title);
+  card.appendChild(desc);
+  card.appendChild(costP);
+  card.appendChild(btn);
+  
   return card;
 }
 
@@ -432,33 +421,37 @@ export function renderPrestigeContainer(game) {
   el.innerHTML = `
     <h3>🌟 Prestige</h3>
     <p style="font-size: 12px; color: #9aa4b6; margin-top: 10px;">
-    Prestige setzt deine Ressourcen und Upgrades zurück, aber du behältst Prestige-Punkte und Prestige-Upgrades. Dein Prestige-Bonus multipliziert alle Produktionsraten.
+      Prestige setzt deine Ressourcen und Upgrades zurück, aber du behältst Prestige-Punkte 
+      und Prestige-Upgrades. Diese geben dir permanente Boni.
     </p>
-    <p>Aktuelle Prestige-Punkte: <strong>${info.currentPoints}</strong></p>
-    <p>Effektiver Bonus: <strong>×${info.effectiveBonus.toFixed(2)}</strong></p>
-    <p>Bei Prestige erhältst du: <strong>+${info.gained}</strong> Punkte</p>
+    <div class="prestige-info">
+      <p>Aktuelle Prestige-Punkte: <strong>${info.currentPoints}</strong></p>
+      <p>Bei Prestige erhältst du: <strong>+${info.gained}</strong> Punkt${info.gained !== 1 ? 'e' : ''}</p>
+      <p class="muted">Basiert auf insgesamt gesammelter Energie: √(Energie/100.000)</p>
+    </div>
     <button id="prestigeBtn" class="prestige-btn" ${game.canPrestige() ? '' : 'disabled'}>
       ${game.canPrestige() 
-        ? `Prestige ausführen (+${info.gained} Punkt${info.gained !== 1 ? 'e' : ''})`
-        : 'Noch nicht genug Ressourcen (benötigt 1 Punkt)'}
+        ? `🚀 Prestige durchführen (+${info.gained} Punkt${info.gained !== 1 ? 'e' : ''})`
+        : '⛔ Noch nicht genug Fortschritt (mindestens 1 Punkt nötig)'}
     </button>
-    <p style="font-size: 12px; color: #9aa4b6; margin-top: 10px;">
-      Tipp: 1 Mio Stein, 500k Holz, 250k Ton, 100k Metall oder 20k Kristall = 1 Punkt
-    </p>
   `;
   
   const prestigeBtn = document.getElementById('prestigeBtn');
   if (prestigeBtn) {
     prestigeBtn.onclick = () => {
+      if (!confirm(`Bist du sicher? Du erhältst +${info.gained} Prestige-Punkt${info.gained !== 1 ? 'e' : ''} und fängst von vorne an.`)) {
+        return;
+      }
+      
       if (game.performPrestige()) {
         renderAll(game);
-        alert(`Prestige erfolgreich! Du hast ${info.gained} Punkte erhalten.`);
+        alert(`✨ Prestige erfolgreich! Du hast ${info.gained} Prestige-Punkt${info.gained !== 1 ? 'e' : ''} erhalten!`);
       }
     };
   }
+  
   renderPrestigeUpgrades(game);
 }
-
 
 // ========== Prestige Upgrades Rendering ==========
 
@@ -468,63 +461,112 @@ export function renderPrestigeUpgrades(game) {
   
   grid.innerHTML = '';
   
+  // Gruppiere nach Kategorie
+  const categories = {
+    production: [],
+    utility: [],
+    efficiency: [],
+    unlock: [],
+    prestige: []
+  };
+  
   game.prestigeUpgrades.forEach(upg => {
-    const card = document.createElement('div');
-    card.className = 'card';
-    
-    const title = document.createElement('h3');
-    title.textContent = upg.name;
-    
-    const desc = document.createElement('p');
-    desc.textContent = upg.desc;
-    
-    const costP = document.createElement('p');
-    const cost = upg.getCurrentCost();
-    costP.textContent = `Kosten: ${cost} Prestige-Punkte`;
-    
-    const owned = document.createElement('p');
-    owned.className = 'muted';
-    owned.textContent = `Stufe: ${upg.level}`;
-    
-    const btn = document.createElement('button');
-    btn.className = 'buy-btn';
-    const canBuy = upg.canBuy(gameState);
-    btn.disabled = !canBuy;
-    btn.textContent = canBuy ? 'Kaufen' : 'Nicht genug Punkte';
-    
-    btn.onclick = () => {
-      if (upg.buy(game, gameState)) {
-        game.syncToState();
-        gameState.save();
-        renderPrestigeContainer(game);
-        renderStatsBar(game);
-      }
-    };
-    
-    card.appendChild(title);
-    card.appendChild(desc);
-    card.appendChild(costP);
-    card.appendChild(owned);
-    card.appendChild(btn);
-    
-    grid.appendChild(card);
+    if (categories[upg.category]) {
+      categories[upg.category].push(upg);
+    }
   });
+  
+  const categoryNames = {
+    production: '🏭 Produktion',
+    utility: '🛠️ Utilität',
+    efficiency: '⚡ Effizienz',
+    unlock: '🔓 Freischaltungen',
+    prestige: '🌟 Prestige'
+  };
+  
+  for (const [cat, upgrades] of Object.entries(categories)) {
+    if (upgrades.length === 0) continue;
+    
+    const col = document.createElement('div');
+    col.className = 'upgrade-col';
+    
+    const header = document.createElement('h4');
+    header.textContent = categoryNames[cat] || cat;
+    col.appendChild(header);
+    
+    upgrades.forEach(upg => {
+      const card = createPrestigeUpgradeCard(game, upg);
+      col.appendChild(card);
+    });
+    
+    grid.appendChild(col);
+  }
 }
 
-// ========== Achievement Rendering ========== NEU!
+function createPrestigeUpgradeCard(game, upg) {
+  const card = document.createElement('div');
+  card.className = 'card prestige-card';
+  
+  const title = document.createElement('h3');
+  title.textContent = `${upg.icon} ${upg.name}`;
+  
+  const desc = document.createElement('p');
+  desc.textContent = upg.getFormattedDescription();
+  
+  const costP = document.createElement('p');
+  const cost = upg.getCost();
+  costP.textContent = `Kosten: ${formatAmount(cost)} 🌟`;
+  
+  const levelP = document.createElement('p');
+  levelP.className = 'muted';
+  levelP.textContent = upg.maxLevel !== -1 
+    ? `Stufe: ${upg.level} / ${upg.maxLevel}` 
+    : `Stufe: ${upg.level}`;
+  
+  const btn = document.createElement('button');
+  btn.className = 'buy-btn';
+  
+  const prestigePoints = game.resources.prestige?.amount || 0;
+  const canBuy = upg.canBuy(prestigePoints);
+  
+  btn.disabled = !canBuy;
+  
+  if (upg.maxLevel !== -1 && upg.level >= upg.maxLevel) {
+    btn.textContent = 'Maximum erreicht';
+    btn.disabled = true;
+  } else {
+    btn.textContent = canBuy ? 'Kaufen' : 'Nicht genug Punkte';
+  }
+  
+  btn.onclick = () => {
+    if (upg.buy(gameState)) {
+      // Prestige-Boni neu berechnen
+      game.prestigeBonuses = require('../src/modules/prestige-upgrades.js').calculatePrestigeBonuses(game.prestigeUpgrades);
+      game.recalculateProduction();
+      game.syncToState();
+      gameState.save();
+      renderAll(game);
+    }
+  };
+  
+  card.appendChild(title);
+  card.appendChild(desc);
+  card.appendChild(costP);
+  card.appendChild(levelP);
+  card.appendChild(btn);
+  
+  return card;
+}
+
+// ========== Achievement Rendering ==========
 
 export function renderAchievements(game) {
   const container = document.getElementById('achievementsContainer');
-  if (!container) {
-    console.error('❌ achievementsContainer nicht gefunden!');
-    return;
-  }
-  
-  console.log('🏆 Rendering Achievements...');
+  if (!container) return;
   
   container.innerHTML = '';
   
-  // Statistik-Header
+  // Header mit Stats
   const stats = achievementManager.getStats();
   const header = document.createElement('div');
   header.className = 'achievement-header';
@@ -539,37 +581,6 @@ export function renderAchievements(game) {
     </div>
   `;
   container.appendChild(header);
-  
-  // NEU: Profil-/Session-Statistiken
-  const profileBox = document.createElement('div');
-  profileBox.className = 'achievement-profile-stats';
-
-  const now = Date.now();
-  // const playSeconds = Math.floor((now - game.startTime) / 1000);
-  const prestigeCount = game.prestigeCount || 0;
-  const totalPrestige = game.totalPrestigePoints || 0;
-  const totalClicks = game.totalClicks || 0;
-    
-  // startTime stammt aus gameState und kann sehr alt sein.
-  // Besser: begrenzen und nur aktuelle Session grob anzeigen:
-  let playSeconds = 0;
-  if (game.startTime) {
-    const diffMs = now - game.startTime;
-    // Negative oder zu große Werte abfangen
-    if (diffMs > 0 && diffMs < 1000 * 60 * 60 * 24 * 365) {
-      playSeconds = Math.floor(diffMs / 1000);
-    }
-  }
-  
-  profileBox.innerHTML = `
-    <div class="profile-row">
-      <div><strong>Spielzeit (aktuelle Session) </strong><span>${formatPlaytime(playSeconds)}</span></div>
-      <div><strong>Gesamt-Klicks </strong><span>${formatAmount(totalClicks)}</span></div>
-      <div><strong>Prestiges </strong><span>${prestigeCount}</span></div>
-      <div><strong>Prestige-Punkte gesamt </strong><span>${totalPrestige}</span></div>
-    </div>
-  `;
-  container.appendChild(profileBox);
   
   // Nach Kategorien gruppieren
   for (let catKey in achievementManager.categories) {
@@ -596,32 +607,13 @@ export function renderAchievements(game) {
     grid.className = 'achievement-grid';
     
     achievements.forEach(ach => {
-      const card = createAchievementCard(ach);
-      grid.appendChild(card);
+      const achCard = createAchievementCard(ach);
+      grid.appendChild(achCard);
     });
     
     section.appendChild(grid);
     container.appendChild(section);
   }
-  
-  // Versteckte Achievements-Sektion
-  const hidden = achievementManager.getHidden();
-  if (hidden.length > 0) {
-    const section = document.createElement('div');
-    section.className = 'achievement-category';
-    section.innerHTML = `
-      <div class="achievement-category-header">
-        <h3>❓ Versteckte Achievements</h3>
-        <span class="category-progress">${hidden.length} verborgen</span>
-      </div>
-      <p class="muted" style="padding: 10px;">
-        ${hidden.length} versteckte Achievement${hidden.length > 1 ? 's' : ''} warten darauf, entdeckt zu werden...
-      </p>
-    `;
-    container.appendChild(section);
-  }
-  
-  console.log(`✅ ${stats.total} Achievements gerendert`);
 }
 
 function createAchievementCard(achievement) {
@@ -645,19 +637,6 @@ function createAchievementCard(achievement) {
   content.appendChild(name);
   content.appendChild(desc);
   
-  // Fortschrittsbalken (falls vorhanden)
-  if (!achievement.unlocked && achievement.progressFn && achievement.maxProgress > 0) {
-    const progressPercent = achievement.getProgressPercent();
-    const progressBar = document.createElement('div');
-    progressBar.className = 'achievement-progress-bar small';
-    progressBar.innerHTML = `
-      <div class="achievement-progress" style="width: ${progressPercent}%"></div>
-      <span class="progress-text">${formatAmount(achievement.progress)} / ${formatAmount(achievement.maxProgress)}</span>
-    `;
-    content.appendChild(progressBar);
-  }
-  
-  // Unlock-Zeitstempel
   if (achievement.unlocked && achievement.unlockedAt) {
     const date = new Date(achievement.unlockedAt);
     const timeAgo = document.createElement('p');
@@ -672,57 +651,51 @@ function createAchievementCard(achievement) {
   return card;
 }
 
-// Achievement-Notification anzeigen
+// ========== Achievement Notification ==========
+
 export function showAchievementNotification(achievement) {
-    achievementQueue.push(achievement);
-    if (!isShowingAchievement) {
-        processNextAchievementNotification();
-    }
+  achievementQueue.push(achievement);
+  if (!isShowingAchievement) {
+    processNextAchievementNotification();
+  }
 }
 
 function processNextAchievementNotification() {
-    if (achievementQueue.length === 0) {
-        isShowingAchievement = false;
-        return;
-    }
+  if (achievementQueue.length === 0) {
+    isShowingAchievement = false;
+    return;
+  }
 
-    isShowingAchievement = true;
-    const achievement = achievementQueue.shift();
+  isShowingAchievement = true;
+  const achievement = achievementQueue.shift();
 
-    const notification = document.createElement('div');
-    notification.className = 'achievement-notification';
-    notification.setAttribute('role', 'status');
-    notification.setAttribute('aria-live', 'polite');
+  const notification = document.createElement('div');
+  notification.className = 'achievement-notification';
 
-    notification.innerHTML = `
-        <div class="achievement-notification-content">
-            <div class="achievement-notification-icon">${achievement.icon}</div>
-            <div class="achievement-notification-text">
-                <strong>Achievement freigeschaltet!</strong>
-                <p>${achievement.name}</p>
-            </div>
-        </div>
-    `;
+  notification.innerHTML = `
+    <div class="achievement-notification-content">
+      <div class="achievement-notification-icon">${achievement.icon}</div>
+      <div class="achievement-notification-text">
+        <strong>Achievement freigeschaltet!</strong>
+        <p>${achievement.name}</p>
+      </div>
+    </div>
+  `;
 
-    document.body.appendChild(notification);
+  document.body.appendChild(notification);
 
-    // Einblenden
+  setTimeout(() => {
+    notification.classList.add('show');
+  }, 100);
+
+  setTimeout(() => {
+    notification.classList.remove('show');
     setTimeout(() => {
-        notification.classList.add('show');
-    }, 100);
-
-    const displayDuration = 4000; // später leicht variabel machbar
-
-    // Ausblenden & aufräumen
-    setTimeout(() => {
-        notification.classList.remove('show');
-        setTimeout(() => {
-            notification.remove();
-            processNextAchievementNotification(); // nächstes in der Queue anzeigen
-        }, 300);
-    }, displayDuration);
+      notification.remove();
+      processNextAchievementNotification();
+    }, 300);
+  }, 4000);
 }
-
 
 // ========== Utility Functions ==========
 
@@ -742,13 +715,12 @@ export function renderAll(game) {
   renderStatsBar(game);
   renderActions(game);
   renderUpgrades(game);
+  renderResearch(game);
   renderPrestigeContainer(game);
-  renderPrestigeUpgrades(game);
   
-  // Achievements nur rendern, wenn Tab aktiv ist
+  // Achievements nur rendern wenn Tab aktiv
   const achievementContainer = document.getElementById('achievementsContainer');
   if (achievementContainer && achievementContainer.style.display !== 'none') {
-    console.log('🏆 Rendering Achievements (Tab aktiv)...');
     renderAchievements(game);
   }
 }
