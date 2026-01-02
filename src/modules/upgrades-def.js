@@ -657,6 +657,7 @@ export function calculateUpgradeCost(upgrade, currentCount = 0) {
 
 /**
  * Prüft ob ein Upgrade freigeschaltet werden kann
+ * WICHTIG: gameState.resources ist jetzt ein Objekt mit {id: {amount, unlocked, ...}}
  */
 export function checkUpgradeUnlock(upgradeId, gameState, upgradeCounts) {
   const upgrade = upgradeDefinitions.find(u => u.id === upgradeId);
@@ -668,7 +669,10 @@ export function checkUpgradeUnlock(upgradeId, gameState, upgradeCounts) {
   
   // Ressourcen-Bedingung
   if (req.resource) {
-    const currentAmount = gameState.resources[req.resource] || 0;
+    const resourceData = gameState.resources?.[req.resource];
+    if (!resourceData) return false;
+    
+    const currentAmount = resourceData.amount || 0;
     return currentAmount >= req.amount;
   }
   
