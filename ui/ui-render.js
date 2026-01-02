@@ -67,8 +67,13 @@ export function renderStatsBar(game) {
     
     // Click-Ressource bekommt Click-Wert angezeigt
     if (resource.clickValue > 0) {
-      const clickTotal = resource.clickValue + (game.prestigeBonuses?.clickPower || 0);
-      details.textContent = `+${formatRate(resource.perSecond)}/s, +${formatRate(clickTotal)}/klick`;
+      // Berechne den tatsächlichen Click-Wert inklusive Prestige-Boni
+      let totalClickValue = resource.clickValue;
+      if (game.prestigeBonuses) {
+        totalClickValue += game.prestigeBonuses.clickPower;
+        totalClickValue *= (1 + game.prestigeBonuses.clickMultiplier);
+      }
+      details.textContent = `+${formatRate(resource.perSecond)}/s, +${formatRate(totalClickValue)}/klick`;
     } else {
       details.textContent = `+${formatRate(resource.perSecond)}/s`;
     }
@@ -103,7 +108,8 @@ export function renderActions(game) {
     btn.className = 'action-btn energy';
     btn.id = 'energyBtn';
     
-    let clickValue = energyResource.clickValue || 1;
+    // Berechne den tatsächlichen Click-Wert (wie in handleClick)
+    let clickValue = energyResource.clickValue;
     if (game.prestigeBonuses) {
       clickValue += game.prestigeBonuses.clickPower;
       clickValue *= (1 + game.prestigeBonuses.clickMultiplier);
