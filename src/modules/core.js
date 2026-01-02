@@ -357,17 +357,17 @@ class Game {
   }
   
   recalculateClickValues() {
-    // Click-Upgrades anwenden
+    // Click-Upgrades anwenden (für energy)
     for (const def of this.upgradeDefinitions) {
       if (def.type !== 'click') continue;
       const count = this.upgrades[def.id] || 0;
       if (count === 0) continue;
       
-      if (def.effect && def.effect.resource) {
-        const resource = this.resources[def.effect.resource];
-        if (resource) {
-          // Addiere Click-Power
-          resource.clickValue += def.effect.clickIncrease * count;
+      // Click-Upgrades gelten immer für Energie
+      if (def.effect && def.effect.clickBonus) {
+        const energyResource = this.resources.energy;
+        if (energyResource) {
+          energyResource.clickValue += def.effect.clickBonus;
         }
       }
     }
