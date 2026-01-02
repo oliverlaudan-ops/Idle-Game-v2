@@ -74,11 +74,27 @@ function setupSaveButtons(game) {
     resetBtn.addEventListener('click', () => {
       if (!confirm('Spiel wirklich vollständig zurücksetzen? Alle Daten gehen verloren!')) return;
     
-      // GameState zurücksetzen (setzt Initialwerte und speichert)
+      console.log('🔴 RESET GESTARTET');
+      console.log('Vor Reset - localStorage:', localStorage.getItem('gameState'));
+      
+      // Game Loop stoppen
+      game.stopGameLoop();
+      
+      // GameState zurücksetzen
       gameState.reset();
       
-      // Seite neu laden damit alles frisch initialisiert wird
-      window.location.reload();
+      console.log('Nach gameState.reset() - localStorage:', localStorage.getItem('gameState'));
+      
+      // Sicherheitshalber nochmal komplett löschen
+      localStorage.clear();
+      
+      console.log('Nach localStorage.clear():', localStorage.getItem('gameState'));
+      console.log('🟢 RESET ABGESCHLOSSEN - Lade Seite neu...');
+      
+      // Kurz warten damit die Console-Logs sichtbar sind
+      setTimeout(() => {
+        window.location.reload();
+      }, 100);
     });
   }
 }
