@@ -3,6 +3,8 @@
  * Zentraler Spielstand-Manager
  */
 
+import resourceDefinitions from './resources-def.js';
+
 export class GameState {
   constructor() {
     // Versuche gespeicherten State zu laden
@@ -49,8 +51,17 @@ export class GameState {
 
   // Spielstand zurücksetzen
   reset() {
-    // Alles zurücksetzen
+    // Ressourcen mit Startwerten initialisieren
     this.resources = {};
+    for (const def of resourceDefinitions) {
+      this.resources[def.id] = {
+        amount: def.startAmount || 0,
+        totalEarned: 0,
+        unlocked: def.unlocked || false
+      };
+    }
+    
+    // Rest zurücksetzen
     this.upgrades = {};
     this.completedResearch = [];
     this.prestigeUpgrades = [];
@@ -63,8 +74,10 @@ export class GameState {
     this.startTime = Date.now();
     this.lastOnline = Date.now();
     
-    // LocalStorage löschen
+    // LocalStorage löschen und neu speichern
     localStorage.removeItem('gameState');
+    this.save();
+    
     console.log('🗑️ Spielstand zurückgesetzt');
   }
 
