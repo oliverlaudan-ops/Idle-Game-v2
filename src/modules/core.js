@@ -66,6 +66,7 @@ class Game {
         category: def.category,
         perSecond: def.perSecond || 0,
         clickValue: def.clickValue || 0,
+        baseClickValue: def.clickValue || 0, // Basis-Wert speichern
         color: def.color
       };
     }
@@ -300,7 +301,12 @@ class Game {
     // Alle Produktionsraten zurücksetzen
     for (const resource of Object.values(this.resources)) {
       resource.perSecond = 0;
+      // Click-Werte auf Basis zurücksetzen
+      resource.clickValue = resource.baseClickValue || 0;
     }
+    
+    // Click-Werte von Click-Upgrades hinzufügen
+    this.recalculateClickValues();
     
     // Basis-Produktion aus Gebäuden
     for (const def of this.upgradeDefinitions) {
@@ -347,6 +353,23 @@ class Game {
     // Permanente Platz-Boni aus Prestige
     if (this.prestigeBonuses) {
       this.maxSpace += this.prestigeBonuses.permanentSpace;
+    }
+  }
+  
+  recalculateClickValues() {
+    // Click-Upgrades anwenden
+    for (const def of this.upgradeDefinitions) {
+      if (def.type !== 'click') continue;
+      const count = this.upgrades[def.id] || 0;
+      if (count === 0) continue;
+      
+      if (def.effect && def.effect.resource) {
+        const resource = this.resources[def.effect.resource];
+        if (resource) {
+          // Addiere Click-Power
+          resource.clickValue += def.effect.clickIncrease * count;
+        }
+      }
     }
   }
   
