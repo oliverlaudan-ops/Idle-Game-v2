@@ -1,125 +1,101 @@
-// game-state.js
-import resourcesList from './resources-def.js'; // Liste aller Ressourcen
+/**
+ * game-state.js
+ * Zentraler Spielstand-Manager
+ */
 
 export class GameState {
-constructor() {
-    const storageValue = localStorage.getItem("gameState");
+  constructor() {
+    // Versuche gespeicherten State zu laden
+    const storageValue = localStorage.getItem('gameState');
     let savedState = null;
 
-    if (storageValue && storageValue !== "undefined") {
+    if (storageValue && storageValue !== 'undefined') {
       try {
         savedState = JSON.parse(storageValue);
         Object.assign(this, savedState);
       } catch (e) {
-        // Ignoriere kaputte Saves, verwende Default
+        console.warn('Konnte gespeicherten State nicht laden:', e);
       }
     }
 
-    // Alle aktuell definierten Ressourcen initialisieren
-    const resIds = resourcesList.map(r => r.id);  // z.B. ['stein','holz',...]
-    resIds.forEach(id => {
-      this[id] = this[id] ?? 0;
-    });
-
-    // Gesamtverdienst-Tracking dynamisch aufbauen
-    this.totalEarned = this.totalEarned ?? {};
-    resIds.forEach(id => {
-      if (typeof this.totalEarned[id] !== 'number') {
-        this.totalEarned[id] = 0;
-      }
-    });
-
-    this.upgrades         = this.upgrades         ?? [];
+    // Initialisiere mit Defaults falls nichts geladen wurde
+    this.resources = this.resources ?? {};
+    this.upgrades = this.upgrades ?? {};
+    this.completedResearch = this.completedResearch ?? [];
     this.prestigeUpgrades = this.prestigeUpgrades ?? [];
-
-    // Prestige-System
-    this.prestige           = this.prestige           ?? 0;
-    this.prestigeBaseBonus  = this.prestigeBaseBonus  ?? 1;
-    this.prestigeUpgradeMult = this.prestigeUpgradeMult ?? 1;
-
-    // Sonstige Flags / Tracking
-    this.hasOfflineBonus        = this.hasOfflineBonus        ?? false;
-    this.totalClicks            = this.totalClicks            ?? 0;
-    this.prestigeCount          = this.prestigeCount          ?? 0;
-    this.totalPrestigePoints    = this.totalPrestigePoints    ?? 0;
+    this.achievements = this.achievements ?? [];
+    
+    // Space-System
+    this.maxSpace = this.maxSpace ?? 10;
+    
+    // Achievement-Tracking
+    this.totalClicks = this.totalClicks ?? 0;
+    this.prestigeCount = this.prestigeCount ?? 0;
+    this.totalPrestigePoints = this.totalPrestigePoints ?? 0;
     this.achievementPrestigeBonus = this.achievementPrestigeBonus ?? 1;
-    this.startTime              = this.startTime              ?? Date.now();
-
+    this.startTime = this.startTime ?? Date.now();
+    
     // Offline-Tracking
     this.lastOnline = this.lastOnline ?? Date.now();
-
-    // NICHT mehr automatisch speichern beim Init
-    // this.save();
   }
-
 
   // Spielstand speichern
   save() {
-    this.lastOnline = Date.now(); // ← Zeitstempel aktualisieren
-    localStorage.setItem("gameState", JSON.stringify(this));
+    this.lastOnline = Date.now();
+    const stateJSON = JSON.stringify(this);
+    localStorage.setItem('gameState', stateJSON);
+    console.log('💾 Spielstand gespeichert');
   }
 
   // Spielstand zurücksetzen
-  // game-state.js – reset ohne removeItem
-reset() {
-  // Alle Ressourcen anhand totalEarned zurücksetzen
-  if (this.totalEarned) {
-    for (const res in this.totalEarned) {
-      this[res] = 0;
-      this.totalEarned[res] = 0;
-    }
+  reset() {
+    // Alles zurücksetzen
+    this.resources = {};
+    this.upgrades = {};
+    this.completedResearch = [];
+    this.prestigeUpgrades = [];
+    this.achievements = [];
+    this.maxSpace = 10;
+    this.totalClicks = 0;
+    this.prestigeCount = 0;
+    this.totalPrestigePoints = 0;
+    this.achievementPrestigeBonus = 1;
+    this.startTime = Date.now();
+    this.lastOnline = Date.now();
+    
+    // LocalStorage löschen
+    localStorage.removeItem('gameState');
+    console.log('🗑️ Spielstand zurückgesetzt');
   }
 
-  for (const key of Object.keys(this)) {
-    if (['prestige', 'prestigeBaseBonus', 'prestigeUpgradeMult'].includes(key)) continue;
-    if (typeof this[key] === 'number' && !(key in (this.totalEarned || {}))) {
-      this[key] = 0;
-    }
-  }
-
-  this.upgrades = [];
-  this.prestigeUpgrades = [];
-
-  this.prestige = 0;
-  this.prestigeBaseBonus = 1;
-  this.prestigeUpgradeMult = 1;
-
-  this.totalClicks = 0;
-  this.prestigeCount = 0;
-  this.totalPrestigePoints = 0;
-  this.achievementPrestigeBonus = 1;
-
-  this.hasOfflineBonus = false;
-  this.lastOnline = Date.now();
-
-  this.save();
-}
-
-  // Export: Serialisiert und kodiert den Spielstand als Base64
+  // Export als Base64
   export() {
-    const savedState = JSON.stringify(this);
-    const encoded = btoa(savedState);
-    alert("Exportiert: " + encoded);
-    return encoded;
+    try {
+      const stateJSON = JSON.stringify(this);
+      const encoded = btoa(stateJSON);
+      return encoded;
+    } catch (e) {
+      console.error('Export fehlgeschlagen:', e);
+      return null;
+    }
   }
 
-  // Importiert und setzt einen Spielstand aus einem Base64-String
+  // Import von Base64
   import(encodedState) {
     try {
       const decoded = atob(encodedState);
       const parsedState = JSON.parse(decoded);
       Object.assign(this, parsedState);
       this.save();
-      alert("Import erfolgreich!");
+      return true;
     } catch (e) {
-      alert("Fehler beim Importieren: " + e.message);
+      console.error('Import fehlgeschlagen:', e);
+      return false;
     }
   }
 }
 
+// Singleton-Instanz
 const gameState = new GameState();
 
-// WICHTIG:
 export default gameState;
-// Falls du die Klasse auch brauchst:
-// export { GameState };
