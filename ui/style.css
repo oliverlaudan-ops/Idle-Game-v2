@@ -1,16 +1,26 @@
-/* Globales Layout – Dark Space Theme */
+/* ================================================
+   Space Colonies Idle Game - Complete Stylesheet
+   Dark Space Theme mit modernem Design
+   ================================================ */
+
+/* Globale Variablen */
 :root {
   --bg-main: #05060b;
   --bg-panel: #111320;
   --bg-panel-soft: #171a2a;
+  --bg-card: #1a1f35;
   --accent: #38d6ff;
   --accent-soft: #38d6ff33;
+  --accent-glow: #38d6ff88;
   --text-main: #f5f7ff;
   --text-muted: #9ca3c7;
   --border-soft: #2a3045;
   --danger: #ff4b6a;
+  --success: #4ade80;
+  --warning: #fbbf24;
 }
 
+/* Reset & Basics */
 * {
   box-sizing: border-box;
 }
@@ -29,7 +39,7 @@ body {
 
 /* Hauptlayout */
 #app {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 16px;
 }
@@ -40,11 +50,14 @@ body {
   gap: 16px;
 }
 
-/* Stats-Bar */
+/* ================================================
+   Stats-Bar (Resource Display)
+   ================================================ */
+
 .stats-bar {
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 100;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -64,15 +77,28 @@ body {
   background: rgba(15, 20, 40, 0.9);
   border: 1px solid #242a40;
   font-size: 13px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-pill:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(56, 214, 255, 0.15);
 }
 
 .stat-pill .label {
   font-weight: 600;
+  color: var(--text-main);
 }
 
 .stat-pill .details {
   color: var(--text-muted);
   font-size: 11px;
+  margin-top: 2px;
+}
+
+.stat-pill.stat-space {
+  border-color: var(--accent);
+  background: rgba(56, 214, 255, 0.08);
 }
 
 .stat-meta {
@@ -82,11 +108,14 @@ body {
   color: var(--text-muted);
 }
 
-/* Actions-Spalte */
+/* ================================================
+   Actions Spalte (Links)
+   ================================================ */
+
 .actions {
   position: sticky;
   align-self: flex-start;
-  top: 70px; /* wird von JS noch feinjustiert */
+  top: 70px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -97,7 +126,28 @@ body {
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
 }
 
-/* Buttons */
+.action-btn {
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #1e2d50, #2a3f70);
+  border: 1px solid var(--accent-soft);
+  box-shadow: 0 0 12px rgba(56, 214, 255, 0.2);
+}
+
+.action-btn:hover {
+  background: linear-gradient(135deg, #2a3f70, #3a5090);
+  box-shadow: 0 0 20px var(--accent-glow);
+}
+
+.action-btn:active {
+  transform: scale(0.98);
+}
+
+/* ================================================
+   Buttons (Global)
+   ================================================ */
+
 button {
   cursor: pointer;
   border: none;
@@ -111,18 +161,26 @@ button {
   transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.15s ease;
 }
 
-button:hover {
+button:hover:not(:disabled) {
   transform: translateY(-1px);
   background: linear-gradient(135deg, #1c2745, #26325a);
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.6);
 }
 
-button:active {
+button:active:not(:disabled) {
   transform: translateY(0);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
 }
 
-/* Upgrades-Panel */
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ================================================
+   Upgrades Panel & Tabs
+   ================================================ */
+
 .upgrades-panel {
   padding: 10px;
   background: var(--bg-panel);
@@ -131,16 +189,17 @@ button:active {
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
 }
 
-/* Tabs */
 .tabs {
   display: flex;
   gap: 6px;
   margin-bottom: 8px;
+  flex-wrap: wrap;
 }
 
 .tab-btn {
   flex: 1;
-  padding: 8px;
+  min-width: 120px;
+  padding: 8px 12px;
   font-size: 13px;
   background: #101322;
   color: var(--text-muted);
@@ -152,35 +211,383 @@ button:active {
   background: radial-gradient(circle at 30% 0, #38d6ff55 0, #1a2138 55%);
   color: var(--text-main);
   border-color: var(--accent);
+  box-shadow: 0 0 12px rgba(56, 214, 255, 0.3);
 }
 
-/* Upgrade-Grids */
+/* ================================================
+   Upgrade Grids & Columns
+   ================================================ */
+
 .upgrade-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 12px;
 }
 
 .upgrade-col {
-  flex: 1 1 220px;
-  min-width: 220px;
+  flex: 1 1 280px;
+  min-width: 260px;
+  max-width: 400px;
 }
 
 .upgrade-col h4 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ================================================
+   Cards (Upgrade/Building/Research/Prestige)
+   ================================================ */
+
+.card {
+  background: var(--bg-card);
+  border-radius: 10px;
+  border: 1px solid var(--border-soft);
+  padding: 12px;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+  border-color: var(--accent-soft);
+}
+
+.card h3 {
   margin: 0 0 6px;
+  font-size: 15px;
+  color: var(--text-main);
+}
+
+.card p {
+  margin: 4px 0;
   font-size: 13px;
+  line-height: 1.4;
   color: var(--text-muted);
 }
 
-/* Karten */
-.card {
-  background: var(--bg-panel-soft);
-  border-radius
+.card p.muted {
+  font-size: 12px;
+  color: #6b7299;
+}
 
-/* Save Textbox */
+.card .production-info {
+  color: var(--success);
+  font-weight: 500;
+  font-size: 12px;
+}
+
+/* Research Cards */
+.research-card {
+  border-left: 3px solid var(--accent);
+  background: linear-gradient(90deg, rgba(56, 214, 255, 0.05), transparent);
+}
+
+/* Prestige Cards */
+.prestige-card {
+  border-left: 3px solid #fbbf24;
+  background: linear-gradient(90deg, rgba(251, 191, 36, 0.05), transparent);
+}
+
+.prestige-card h3 {
+  color: #fbbf24;
+}
+
+/* Completed Research */
+.card.completed {
+  opacity: 0.6;
+  background: rgba(26, 31, 53, 0.5);
+}
+
+/* Buy Button in Cards */
+.buy-btn {
+  width: 100%;
+  margin-top: 8px;
+  padding: 10px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #2a4070, #3a5090);
+  border: 1px solid var(--accent-soft);
+}
+
+.buy-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #3a5090, #4a60b0);
+  box-shadow: 0 0 16px rgba(56, 214, 255, 0.4);
+}
+
+/* ================================================
+   Progress Bars
+   ================================================ */
+
+.progress-bar {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 2px;
+  margin-top: 8px;
+  overflow: hidden;
+}
+
+.progress {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent-glow));
+  transition: width 0.3s ease;
+  border-radius: 2px;
+}
+
+/* ================================================
+   Prestige Container
+   ================================================ */
+
+#prestigeContainer {
+  padding: 16px;
+  background: var(--bg-panel);
+  border-radius: 10px;
+  border: 1px solid var(--border-soft);
+  margin-bottom: 16px;
+}
+
+#prestigeContainer h3 {
+  margin: 0 0 12px;
+  font-size: 20px;
+  color: #fbbf24;
+}
+
+.prestige-info {
+  background: rgba(251, 191, 36, 0.05);
+  border-left: 3px solid #fbbf24;
+  padding: 12px;
+  border-radius: 8px;
+  margin: 12px 0;
+}
+
+.prestige-info p {
+  margin: 6px 0;
+}
+
+.prestige-btn {
+  width: 100%;
+  padding: 14px;
+  font-size: 16px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #b8860b, #fbbf24);
+  color: #000;
+  box-shadow: 0 0 20px rgba(251, 191, 36, 0.4);
+}
+
+.prestige-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #fbbf24, #fcd34d);
+  box-shadow: 0 0 30px rgba(251, 191, 36, 0.6);
+}
+
+.prestige-btn:disabled {
+  background: #2a2f45;
+  color: var(--text-muted);
+  box-shadow: none;
+}
+
+#prestigeUpgrades {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+/* ================================================
+   Achievements
+   ================================================ */
+
+#achievementsContainer {
+  padding: 16px;
+}
+
+.achievement-header {
+  text-align: center;
+  margin-bottom: 24px;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(56, 214, 255, 0.05), rgba(56, 214, 255, 0.1));
+  border-radius: 12px;
+  border: 1px solid var(--accent-soft);
+}
+
+.achievement-header h2 {
+  margin: 0 0 12px;
+  font-size: 28px;
+  color: var(--accent);
+}
+
+.achievement-stats {
+  margin-bottom: 12px;
+}
+
+.stat-highlight {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-right: 8px;
+}
+
+.stat-label {
+  font-size: 16px;
+  color: var(--text-muted);
+}
+
+.achievement-progress-bar {
+  width: 100%;
+  max-width: 400px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+.achievement-progress {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), #4ade80);
+  transition: width 0.5s ease;
+}
+
+.achievement-category {
+  margin-bottom: 24px;
+}
+
+.achievement-category-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--bg-panel-soft);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.achievement-category-header h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.category-progress {
+  font-size: 14px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.achievement-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.achievement-card {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  background: var(--bg-card);
+  border-radius: 10px;
+  border: 1px solid var(--border-soft);
+  transition: all 0.2s ease;
+}
+
+.achievement-card.unlocked {
+  border-color: var(--success);
+  background: linear-gradient(135deg, rgba(74, 222, 128, 0.05), var(--bg-card));
+}
+
+.achievement-card.locked {
+  opacity: 0.5;
+}
+
+.achievement-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+}
+
+.achievement-icon {
+  font-size: 32px;
+  flex-shrink: 0;
+}
+
+.achievement-content {
+  flex: 1;
+}
+
+.achievement-content h4 {
+  margin: 0 0 4px;
+  font-size: 14px;
+  color: var(--text-main);
+}
+
+.achievement-desc {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.achievement-time {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: #6b7299;
+}
+
+/* Achievement Notifications */
+.achievement-notification {
+  position: fixed;
+  top: 80px;
+  right: -400px;
+  width: 320px;
+  background: linear-gradient(135deg, #1a2138, #243050);
+  border: 2px solid var(--success);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8), 0 0 40px rgba(74, 222, 128, 0.3);
+  z-index: 1000;
+  transition: right 0.3s ease;
+}
+
+.achievement-notification.show {
+  right: 20px;
+}
+
+.achievement-notification-content {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  align-items: center;
+}
+
+.achievement-notification-icon {
+  font-size: 48px;
+  flex-shrink: 0;
+}
+
+.achievement-notification-text strong {
+  display: block;
+  color: var(--success);
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.achievement-notification-text p {
+  margin: 0;
+  font-size: 16px;
+  color: var(--text-main);
+  font-weight: 600;
+}
+
+/* ================================================
+   Save/Load Panel
+   ================================================ */
+
 .save-panel {
   margin-top: 16px;
-  padding: 10px;
+  padding: 12px;
   background: rgba(7, 9, 18, 0.9);
   border-radius: 10px;
   border: 1px dashed #2b3148;
@@ -193,6 +600,11 @@ button:active {
   margin-bottom: 8px;
 }
 
+.save-btn {
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
 #saveString {
   width: 100%;
   resize: vertical;
@@ -202,34 +614,12 @@ button:active {
   border: 1px solid #2b3148;
   background: #050711;
   color: var(--text-main);
-  font-family: monospace;
+  font-family: 'Courier New', monospace;
   font-size: 12px;
   line-height: 1.4;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
 }
 
-.save-btn {
-  /* optional: leicht kleiner als normale Buttons */
-  padding: 8px 10px;
-  font-size: 13px;
-}
-
-.save-textarea {
-  width: 100%;
-  resize: vertical;
-  min-height: 60px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  border: 1px solid #2b3148;
-  background: #050711;
-  color: var(--text-main);
-  font-family: monospace;
-  font-size: 12px;
-  line-height: 1.4;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
-}
-
-/* Optional: Hover/Focus für bessere Integration */
 #saveString:focus {
   outline: none;
   border-color: var(--accent);
@@ -238,4 +628,98 @@ button:active {
     0 0 12px rgba(56, 214, 255, 0.25);
 }
 
+/* ================================================
+   Responsive Design
+   ================================================ */
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
   
+  .actions {
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  
+  .action-btn {
+    flex: 1;
+    min-width: 150px;
+  }
+  
+  .upgrade-col {
+    flex: 1 1 100%;
+    max-width: 100%;
+  }
+  
+  .achievement-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  #app {
+    padding: 8px;
+  }
+  
+  .stats-bar {
+    font-size: 12px;
+  }
+  
+  .tabs {
+    flex-direction: column;
+  }
+  
+  .tab-btn {
+    width: 100%;
+  }
+  
+  .achievement-notification {
+    width: calc(100% - 32px);
+    right: -100%;
+  }
+  
+  .achievement-notification.show {
+    right: 16px;
+  }
+}
+
+/* ================================================
+   Utilities & Helpers
+   ================================================ */
+
+.muted {
+  color: var(--text-muted) !important;
+}
+
+.text-success {
+  color: var(--success);
+}
+
+.text-danger {
+  color: var(--danger);
+}
+
+.text-warning {
+  color: var(--warning);
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-main);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-soft);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-soft);
+}
