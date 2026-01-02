@@ -72,46 +72,16 @@ function setupSaveButtons(game) {
 
   if (resetBtn) {
     resetBtn.addEventListener('click', () => {
-      if (!confirm('Spiel wirklich vollständig zurücksetzen?')) return;
+      if (!confirm('Spiel wirklich vollständig zurücksetzen? Alle Daten gehen verloren!')) return;
     
       // Spiel-Loop stoppen
       game.stopGameLoop();
       
-      // LocalStorage löschen
-      localStorage.removeItem('gameState');
+      // LocalStorage KOMPLETT löschen
+      localStorage.clear();
       
-      // GameState zurücksetzen
-      gameState.reset();
-      
-      // Game-Objekt komplett neu initialisieren
-      game.resources = {};
-      game.upgrades = {};
-      game.upgradeDefinitions = [];
-      game.completedResearch = [];
-      game.researchDefinitions = [];
-      game.prestigeUpgrades = [];
-      game.prestigeBonuses = null;
-      game.totalClicks = 0;
-      game.prestigeCount = 0;
-      game.totalPrestigePoints = 0;
-      game.achievementPrestigeBonus = 1;
-      game.startTime = Date.now();
-      game.maxSpace = 10;
-      game.usedSpace = 0;
-      
-      // Neu initialisieren
-      game.setupGameData();
-      game.setupAchievements();
-      game.syncFromState();
-      
-      // UI neu rendern
-      renderAll(game);
-      
-      // Game Loop neu starten
-      game.startGameLoop();
-      
-      showNotification('Spiel vollständig zurückgesetzt!');
-      console.log('✅ Reset abgeschlossen');
+      // Seite neu laden für frischen Start
+      window.location.reload();
     });
   }
 }
