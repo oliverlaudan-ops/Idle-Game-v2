@@ -7,6 +7,7 @@
 import {
   renderAll,
   renderStatsBar,
+  renderActions,
   renderUpgrades,
   renderAchievements,
   showAchievementNotification
@@ -211,6 +212,8 @@ export function setupGameLoop(game) {
   // Callback für Tick-Updates setzen
   game.onTick = () => {
     renderStatsBar(game);
+    renderActions(game); // Action-Buttons auch bei jedem Tick updaten
+    
     // Upgrades nur rendern wenn Tab aktiv ist (Performance)
     const upgradeGrid = document.getElementById('upgradeGrid');
     if (upgradeGrid && upgradeGrid.style.display !== 'none') {
@@ -246,6 +249,7 @@ export function setupKeyboardShortcuts(game) {
       e.preventDefault();
       game.handleClick('energy');
       renderStatsBar(game);
+      renderActions(game);
     }
   });
 }
