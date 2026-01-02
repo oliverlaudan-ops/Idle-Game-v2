@@ -7,7 +7,18 @@ import resourceDefinitions from './resources-def.js';
 
 export class GameState {
   constructor() {
-    // Versuche gespeicherten State zu laden
+    // WICHTIG: Erst prüfen ob Reset aktiv ist!
+    const resetInProgress = sessionStorage.getItem('gameResetInProgress');
+    
+    if (resetInProgress === 'true') {
+      console.log('🔴 RESET ERKANNT im GameState Constructor!');
+      console.log('🗑️ Lösche localStorage VOR dem Laden...');
+      localStorage.clear();
+      sessionStorage.removeItem('gameResetInProgress');
+      console.log('✅ Reset abgeschlossen - starte mit leeren Daten');
+    }
+    
+    // Versuche gespeicherten State zu laden (nur wenn kein Reset)
     const storageValue = localStorage.getItem('gameState');
     let savedState = null;
 
@@ -58,6 +69,12 @@ export class GameState {
 
   // Spielstand speichern
   save() {
+    // Nicht speichern während Reset
+    if (sessionStorage.getItem('gameResetInProgress') === 'true') {
+      console.log('⚠️ Speichern blockiert - Reset läuft');
+      return;
+    }
+    
     this.lastOnline = Date.now();
     const stateJSON = JSON.stringify(this);
     localStorage.setItem('gameState', stateJSON);
