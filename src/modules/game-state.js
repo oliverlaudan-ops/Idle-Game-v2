@@ -51,6 +51,8 @@ export class GameState {
 
   // Spielstand zurücksetzen
   reset() {
+    console.log('🔴 GameState.reset() wird ausgeführt...');
+    
     // Ressourcen mit Startwerten initialisieren
     this.resources = {};
     for (const def of resourceDefinitions) {
@@ -61,8 +63,10 @@ export class GameState {
       };
     }
     
-    // Rest zurücksetzen
+    // ALLE Upgrades zurücksetzen (nicht nur leeres Object)
     this.upgrades = {};
+    
+    // Alle anderen Daten zurücksetzen
     this.completedResearch = [];
     this.prestigeUpgrades = [];
     this.achievements = [];
@@ -74,11 +78,19 @@ export class GameState {
     this.startTime = Date.now();
     this.lastOnline = Date.now();
     
-    // LocalStorage löschen und neu speichern
-    localStorage.removeItem('gameState');
+    // LocalStorage komplett löschen
+    console.log('🗑️ Lösche localStorage...');
+    localStorage.clear();
+    
+    // Neu speichern mit Reset-Werten
+    console.log('💾 Speichere Reset-State...');
     this.save();
     
-    console.log('🗑️ Spielstand zurückgesetzt');
+    console.log('✅ Reset abgeschlossen - State:', {
+      resources: Object.keys(this.resources).length,
+      upgrades: Object.keys(this.upgrades).length,
+      completedResearch: this.completedResearch.length
+    });
   }
 
   // Export als Base64
