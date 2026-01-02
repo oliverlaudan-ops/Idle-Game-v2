@@ -78,19 +78,12 @@ export class GameState {
     this.startTime = Date.now();
     this.lastOnline = Date.now();
     
-    // LocalStorage komplett löschen
-    console.log('🗑️ Lösche localStorage...');
+    // LocalStorage komplett löschen - OHNE danach zu speichern!
+    console.log('🗑️ Lösche localStorage komplett...');
     localStorage.clear();
     
-    // Neu speichern mit Reset-Werten
-    console.log('💾 Speichere Reset-State...');
-    this.save();
-    
-    console.log('✅ Reset abgeschlossen - State:', {
-      resources: Object.keys(this.resources).length,
-      upgrades: Object.keys(this.upgrades).length,
-      completedResearch: this.completedResearch.length
-    });
+    console.log('✅ Reset abgeschlossen - localStorage ist leer');
+    console.log('ℹ️ localStorage nach Reset:', localStorage.getItem('gameState'));
   }
 
   // Export als Base64
