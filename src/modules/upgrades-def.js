@@ -577,17 +577,12 @@ const upgradeDefinitions = [
     size: 0,
     maxCount: 1,
     baseCost: {
-      energy: 200,
-      metal: 50
+      energy: 100  // Günstiger: war 200
     },
     effect: {
       spaceIncrease: 5
     },
-    unlocked: false,
-    requires: {
-      resource: 'metal',
-      amount: 50
-    }
+    unlocked: true  // SOFORT verfügbar! War: false mit Metal-Requirement
   },
   
   {
@@ -599,9 +594,8 @@ const upgradeDefinitions = [
     size: 0,
     maxCount: 1,
     baseCost: {
-      energy: 1000,
-      metal: 200,
-      population: 20
+      energy: 500,  // Günstiger: war 1000
+      water: 100    // Wasser statt Metal + Population
     },
     effect: {
       spaceIncrease: 10
@@ -622,9 +616,9 @@ const upgradeDefinitions = [
     size: 0,
     maxCount: 1,
     baseCost: {
-      energy: 5000,
-      metal: 500,
-      crystals: 100
+      energy: 2000,  // Günstiger: war 5000
+      metal: 200,    // Günstiger: war 500
+      water: 200     // Wasser statt Crystals
     },
     effect: {
       spaceIncrease: 15
