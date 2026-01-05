@@ -139,7 +139,7 @@ const resourceDefinitions = [
     description: 'Forschungspunkte für technologische Fortschritte.',
     startAmount: 0,
     unlocked: false,
-    unlockCondition: { resource: 'population', amount: 10 },
+    unlockCondition: { resource: 'population', amount: 5 },  // FRÜHER: war 10, jetzt 5!
     category: 'advanced',
     perSecond: 0,
     color: '#00CED1' // Türkis
