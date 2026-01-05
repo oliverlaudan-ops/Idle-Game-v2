@@ -628,6 +628,55 @@ const upgradeDefinitions = [
       upgrade: 'expand_colony_2',
       count: 1
     }
+  },
+  
+  {
+    id: 'expand_colony_4',
+    name: 'Kolonien-Erweiterung IV',
+    icon: '🏗️',
+    description: '+20 Bauplätze - Eröffnet neue strategische Möglichkeiten',
+    type: 'space',
+    size: 0,
+    maxCount: 1,
+    baseCost: {
+      energy: 5000,
+      metal: 500,
+      crystals: 100,
+      population: 50
+    },
+    effect: {
+      spaceIncrease: 20
+    },
+    unlocked: false,
+    requires: {
+      upgrade: 'expand_colony_3',
+      count: 1
+    }
+  },
+  
+  {
+    id: 'expand_colony_5',
+    name: 'Kolonien-Erweiterung V',
+    icon: '🏗️',
+    description: '+25 Bauplätze - Die ultimative Mega-Kolonie!',
+    type: 'space',
+    size: 0,
+    maxCount: 1,
+    baseCost: {
+      energy: 20000,
+      metal: 2000,
+      crystals: 500,
+      fuel: 100,
+      population: 100
+    },
+    effect: {
+      spaceIncrease: 25
+    },
+    unlocked: false,
+    requires: {
+      upgrade: 'expand_colony_4',
+      count: 1
+    }
   }
 ];
 
