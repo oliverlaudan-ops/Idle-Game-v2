@@ -313,28 +313,64 @@ function createUpgradeCard(game, def) {
     desc.after(prodP);
   }
   
+  // Button-Container für Kauf & Abreißen
+  const btnContainer = document.createElement('div');
+  btnContainer.style.cssText = 'display: flex; gap: 8px; margin-top: 12px;';
+  
   // Kauf-Button
-  const btn = document.createElement('button');
-  btn.className = 'buy-btn';
+  const buyBtn = document.createElement('button');
+  buyBtn.className = 'buy-btn';
+  buyBtn.style.flex = '1';
   
   const canBuy = game.canBuyUpgrade(def.id);
-  btn.disabled = !canBuy;
+  buyBtn.disabled = !canBuy;
   
   if (def.maxCount !== -1 && currentCount >= def.maxCount) {
-    btn.textContent = 'Maximum erreicht';
-    btn.disabled = true;
+    buyBtn.textContent = 'Maximum erreicht';
+    buyBtn.disabled = true;
   } else if (def.size > 0 && game.usedSpace + def.size > game.maxSpace) {
-    btn.textContent = 'Kein Platz';
-    btn.disabled = true;
+    buyBtn.textContent = 'Kein Platz';
+    buyBtn.disabled = true;
   } else {
-    btn.textContent = canBuy ? 'Kaufen' : 'Nicht genug';
+    buyBtn.textContent = canBuy ? 'Kaufen' : 'Nicht genug';
   }
   
-  btn.onclick = () => {
+  buyBtn.onclick = () => {
     if (game.buyUpgrade(def.id)) {
       renderAll(game);
     }
   };
+  
+  btnContainer.appendChild(buyBtn);
+  
+  // Abreißen-Button (nur bei Gebäuden mit size > 0 und count > 0)
+  if (def.size > 0 && currentCount > 0) {
+    const demolishBtn = document.createElement('button');
+    demolishBtn.className = 'demolish-btn';
+    demolishBtn.textContent = '💥';
+    demolishBtn.title = 'Abreißen (50% Rückerstattung)';
+    demolishBtn.style.cssText = 'width: 40px; padding: 8px; background: #d32f2f; border: none; border-radius: 4px; color: white; cursor: pointer; font-size: 16px;';
+    
+    demolishBtn.onclick = () => {
+      // Berechne Refund für Anzeige
+      const lastCost = calculateUpgradeCost(def, currentCount - 1);
+      const refundParts = [];
+      for (const [resId, amount] of Object.entries(lastCost)) {
+        const resource = game.resources[resId];
+        if (resource) {
+          refundParts.push(`${formatAmount(Math.floor(amount * 0.5))} ${resource.icon}`);
+        }
+      }
+      
+      if (confirm(`${def.icon} ${def.name} abreißen?\n\nRückerstattung (50%): ${refundParts.join(', ')}`)) {
+        if (game.demolishUpgrade(def.id)) {
+          renderAll(game);
+        }
+      }
+    };
+    
+    btnContainer.appendChild(demolishBtn);
+  }
   
   // Fortschrittsbalken
   const hasProgress = Object.entries(cost).some(([resId, amount]) => {
@@ -364,7 +400,7 @@ function createUpgradeCard(game, def) {
   card.appendChild(desc);
   card.appendChild(costP);
   card.appendChild(info);
-  card.appendChild(btn);
+  card.appendChild(btnContainer);
   
   return card;
 }
