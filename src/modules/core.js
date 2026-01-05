@@ -217,6 +217,44 @@ class Game {
     return true;
   }
   
+  canDemolishUpgrade(upgradeId) {
+    const def = this.getUpgradeDefinition(upgradeId);
+    if (!def) return false;
+    
+    const currentCount = this.getUpgradeCount(upgradeId);
+    return currentCount > 0;
+  }
+  
+  demolishUpgrade(upgradeId) {
+    if (!this.canDemolishUpgrade(upgradeId)) return false;
+    
+    const def = this.getUpgradeDefinition(upgradeId);
+    const currentCount = this.getUpgradeCount(upgradeId);
+    
+    // Berechne die Kosten des letzten Kaufs
+    const lastCost = calculateUpgradeCost(def, currentCount - 1);
+    
+    // Gebe 50% zurück
+    const refund = {};
+    for (const [resourceId, amount] of Object.entries(lastCost)) {
+      refund[resourceId] = Math.floor(amount * 0.5);
+    }
+    
+    // Reduziere Count
+    this.upgrades[upgradeId] = currentCount - 1;
+    
+    // Gebe Ressourcen zurück
+    for (const [resourceId, amount] of Object.entries(refund)) {
+      this.addResourceAmount(resourceId, amount);
+    }
+    
+    // Produktion neu berechnen
+    this.recalculateProduction();
+    
+    console.log(`💥 Abgerissen: ${def.icon} ${def.name} - Rückerstattung: 50%`);
+    return true;
+  }
+  
   checkUpgradeUnlocks() {
     for (const def of this.upgradeDefinitions) {
       if (!def.unlocked && checkUpgradeUnlock(def.id, gameState, this.upgrades)) {
