@@ -6,10 +6,7 @@
 import gameState from '../src/modules/game-state.js';
 import { calculateUpgradeCost } from '../src/modules/upgrades-def.js';
 import achievementManager from '../src/modules/achievement-manager.js';
-
-// Achievement-Notification Queue
-let achievementQueue = [];
-let isShowingAchievement = false;
+import { showAchievementNotification } from '../src/modules/notification-system.js';
 
 // ========== Formatierungs-Hilfsfunktionen ==========
 
@@ -87,7 +84,7 @@ export function renderStatsBar(game) {
   const spacePill = document.createElement('div');
   spacePill.className = 'stat-pill stat-space';
   spacePill.innerHTML = `
-    <span class="label">🏗️ Bauplätze: ${game.usedSpace} / ${game.maxSpace}</span>
+    <span class="label">🏭️ Bauplätze: ${game.usedSpace} / ${game.maxSpace}</span>
   `;
   game.statsBarEl.appendChild(spacePill);
   
@@ -691,52 +688,6 @@ function createAchievementCard(achievement) {
   card.appendChild(content);
   
   return card;
-}
-
-// ========== Achievement Notification ==========
-
-export function showAchievementNotification(achievement) {
-  achievementQueue.push(achievement);
-  if (!isShowingAchievement) {
-    processNextAchievementNotification();
-  }
-}
-
-function processNextAchievementNotification() {
-  if (achievementQueue.length === 0) {
-    isShowingAchievement = false;
-    return;
-  }
-
-  isShowingAchievement = true;
-  const achievement = achievementQueue.shift();
-
-  const notification = document.createElement('div');
-  notification.className = 'achievement-notification';
-
-  notification.innerHTML = `
-    <div class="achievement-notification-content">
-      <div class="achievement-notification-icon">${achievement.icon}</div>
-      <div class="achievement-notification-text">
-        <strong>Achievement freigeschaltet!</strong>
-        <p>${achievement.name}</p>
-      </div>
-    </div>
-  `;
-
-  document.body.appendChild(notification);
-
-  setTimeout(() => {
-    notification.classList.add('show');
-  }, 100);
-
-  setTimeout(() => {
-    notification.classList.remove('show');
-    setTimeout(() => {
-      notification.remove();
-      processNextAchievementNotification();
-    }, 300);
-  }, 4000);
 }
 
 // ========== Utility Functions ==========
