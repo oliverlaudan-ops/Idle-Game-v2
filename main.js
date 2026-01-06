@@ -2,6 +2,7 @@
 
 import Game from './src/modules/core.js';
 import { initializeGame } from './ui/ui-init.js';
+import { initializeHotkeysAndTheme } from './ui/hotkeys-theme.js';
 
 import gameState from './src/modules/game-state.js';
 import {
@@ -27,7 +28,10 @@ function startGame() {
     // Vollständige Initialisierung
     initializeGame(gameInstance);
     
-    // Offline-Progress prüfen ← NEU
+    // ⌨️ Hotkeys & Theme initialisieren ← NEU
+    initializeHotkeysAndTheme(gameInstance);
+    
+    // Offline-Progress prüfen
     checkOfflineProgress(gameInstance);
     
     // Global verfügbar machen (für Debugging in Console)
@@ -36,6 +40,7 @@ function startGame() {
     
     console.log('✨ Game erfolgreich gestartet!');
     console.log('💡 Tipp: Du kannst "game" und "gameState" in der Console verwenden');
+    console.log('⌨️ Tipp: Drücke "H" oder "?" für Hotkey-Übersicht');
     
   } catch (error) {
     console.error('❌ Fehler beim Starten des Spiels:', error);
@@ -43,7 +48,7 @@ function startGame() {
   }
 }
 
-// ========== Offline Progress Check ========== NEU
+// ========== Offline Progress Check ==========
 
 function checkOfflineProgress(game) {
   const now = Date.now();
