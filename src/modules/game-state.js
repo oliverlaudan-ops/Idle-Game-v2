@@ -51,6 +51,22 @@ export class GameState {
     this.achievementPrestigeBonus = this.achievementPrestigeBonus ?? 1;
     this.startTime = this.startTime ?? Date.now();
     
+    // 🆕 Statistics Tracking
+    this.statistics = this.statistics ?? {
+      totalResourcesEarned: {},
+      peakProduction: {},
+      totalUpgradesBought: 0,
+      totalUpgradesSold: 0,
+      mostOwnedBuilding: { id: null, count: 0 },
+      totalResearchCompleted: 0,
+      prestigeHistory: [],
+      playtimeSeconds: 0,
+      lastUpdateTime: Date.now()
+    };
+    
+    // Milestone-Tracking
+    this.reachedMilestones = this.reachedMilestones ?? [];
+    
     // Offline-Tracking
     this.lastOnline = this.lastOnline ?? Date.now();
     
@@ -111,6 +127,23 @@ export class GameState {
     this.achievementPrestigeBonus = 1;
     this.startTime = Date.now();
     this.lastOnline = Date.now();
+    
+    // 🆕 Statistics zurücksetzen
+    this.statistics = {
+      totalResourcesEarned: {},
+      peakProduction: {},
+      totalUpgradesBought: 0,
+      totalUpgradesSold: 0,
+      mostOwnedBuilding: { id: null, count: 0 },
+      totalResearchCompleted: 0,
+      prestigeHistory: [],
+      playtimeSeconds: 0,
+      lastUpdateTime: Date.now()
+    };
+    
+    // Milestones zurücksetzen
+    this.reachedMilestones = [];
+    
     console.log('✅ Alle Tracking-Daten zurückgesetzt');
     
     // LocalStorage komplett löschen - OHNE danach zu speichern!
