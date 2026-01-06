@@ -294,18 +294,38 @@ function createUpgradeCard(game, def) {
     info.textContent = `Stufe: ${currentCount}`;
   }
   
-  // Produktion anzeigen (bei Generatoren)
+  // 🆕 FIX: Produktion anzeigen (bei Generatoren) - MIT ALLEN BONI
   if (def.produces && currentCount > 0) {
     const prodP = document.createElement('p');
     prodP.className = 'production-info';
     const prodParts = [];
-    for (const [resourceId, amount] of Object.entries(def.produces)) {
+    
+    for (const [resourceId, baseAmount] of Object.entries(def.produces)) {
       const resource = game.resources[resourceId];
-      if (resource) {
-        const totalProd = amount * currentCount; // Wird später mit Boni multipliziert
-        prodParts.push(`+${formatRate(totalProd)} ${resource.icon}/s`);
+      if (!resource) continue;
+      
+      // Berechne Produktion mit allen Boni (wie in core.js recalculateProduction)
+      let production = baseAmount * currentCount;
+      
+      // Effizienz-Upgrades anwenden
+      production *= game.getEfficiencyMultiplier(def.id, resourceId);
+      
+      // Forschungs-Boni anwenden
+      production *= game.getResearchMultiplier(def.id, resourceId);
+      
+      // Prestige-Boni anwenden
+      if (game.prestigeBonuses) {
+        production *= (1 + game.prestigeBonuses.globalProduction);
+        production *= (1 + game.prestigeBonuses.buildingProduction);
+        
+        if (game.prestigeBonuses.resourceProduction[resourceId]) {
+          production *= (1 + game.prestigeBonuses.resourceProduction[resourceId]);
+        }
       }
+      
+      prodParts.push(`+${formatRate(production)} ${resource.icon}/s`);
     }
+    
     prodP.textContent = `Produziert: ${prodParts.join(', ')}`;
     desc.after(prodP);
   }
