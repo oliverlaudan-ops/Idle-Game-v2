@@ -9,7 +9,8 @@ import {
   renderStatsBar,
   renderActions,
   renderUpgrades,
-  renderAchievements
+  renderAchievements,
+  renderStatistics
 } from './ui-render.js';
 
 import { showAchievementNotification } from '../src/modules/notification-system.js';
@@ -25,7 +26,7 @@ export function setupDOM(game) {
   game.researchGridEl = document.getElementById('researchGrid');
   
   // Tab-Switching einrichten
-  setupTabs();
+  setupTabs(game);
   
   // Window-Resize-Handler für sticky Actions
   setupResizeHandler();
@@ -104,7 +105,7 @@ function setupSaveButtons(game) {
 
 // ========== Tab-System ==========
 
-function setupTabs() {
+function setupTabs(game) {
   const tabButtons = document.querySelectorAll('.tab-btn');
   
   tabButtons.forEach(btn => {
@@ -123,6 +124,18 @@ function setupTabs() {
           grid.style.display = 'none';
         }
       });
+      
+      // Statistiken-Container
+      const statisticsContainer = document.getElementById('statisticsContainer');
+      if (statisticsContainer) {
+        if (target === 'statistics') {
+          statisticsContainer.style.display = 'block';
+          // Render statistics when tab becomes active
+          renderStatistics(game);
+        } else {
+          statisticsContainer.style.display = 'none';
+        }
+      }
       
       // Achievement-Container
       const achievementsContainer = document.getElementById('achievementsContainer');
