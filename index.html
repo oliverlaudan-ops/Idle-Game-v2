@@ -15,6 +15,10 @@
     <!-- Top-Bar: Ressourcen / Meta -->
     <header class="stats-bar" id="statsBar">
       <!-- Wird komplett von ui-render.js gefüllt -->
+      <!-- Theme Toggle Button (wird oben rechts positioniert) -->
+      <button id="themeToggle" class="theme-toggle" title="Theme wechseln (⏧+T)">
+        🌙
+      </button>
     </header>
 
     <main class="layout">
@@ -26,11 +30,11 @@
       <!-- Rechte Spalte: Tabs + Grids -->
       <section class="upgrades-panel">
         <div class="tabs">
-          <button class="tab-btn active" data-tab="upgrades">Upgrades</button>
-          <button class="tab-btn" data-tab="research">Forschung</button>
-          <button class="tab-btn" data-tab="statistics">📊 Stats</button>
-          <button class="tab-btn" data-tab="achievements">Erfolge</button>
-          <button class="tab-btn" data-tab="prestige">⭐ Prestige</button>
+          <button class="tab-btn active" data-tab="upgrades" title="Hotkey: 1">🏭 Upgrades</button>
+          <button class="tab-btn" data-tab="research" title="Hotkey: 2">🔬 Forschung</button>
+          <button class="tab-btn" data-tab="statistics" title="Hotkey: 3">📊 Statistiken</button>
+          <button class="tab-btn" data-tab="achievements" title="Hotkey: 4">🏆 Erfolge</button>
+          <button class="tab-btn" data-tab="prestige" title="Hotkey: 5">⭐ Prestige</button>
         </div>
 
         <div class="tab-content">
@@ -52,12 +56,43 @@
       </section>
     </main>
 
+    <!-- Hotkey-Hilfe (wird initial versteckt) -->
+    <div id="hotkeyHelp" class="hotkey-help" style="display:none;">
+      <div class="hotkey-help-content">
+        <h2>⌨️ Tastaturkürzel</h2>
+        <div class="hotkey-grid">
+          <div class="hotkey-section">
+            <h3>Navigation</h3>
+            <div class="hotkey-item"><kbd>1</kbd> - Upgrades</div>
+            <div class="hotkey-item"><kbd>2</kbd> - Forschung</div>
+            <div class="hotkey-item"><kbd>3</kbd> - Statistiken</div>
+            <div class="hotkey-item"><kbd>4</kbd> - Erfolge</div>
+            <div class="hotkey-item"><kbd>5</kbd> - Prestige</div>
+          </div>
+          <div class="hotkey-section">
+            <h3>Aktionen</h3>
+            <div class="hotkey-item"><kbd>Leertaste</kbd> - Energie sammeln</div>
+            <div class="hotkey-item"><kbd>Strg</kbd> + <kbd>S</kbd> - Speichern</div>
+            <div class="hotkey-item"><kbd>Strg</kbd> + <kbd>R</kbd> - UI neu laden</div>
+            <div class="hotkey-item"><kbd>⏧</kbd> + <kbd>T</kbd> - Theme wechseln</div>
+          </div>
+          <div class="hotkey-section">
+            <h3>Hilfe</h3>
+            <div class="hotkey-item"><kbd>H</kbd> oder <kbd>?</kbd> - Diese Hilfe</div>
+            <div class="hotkey-item"><kbd>ESC</kbd> - Hilfe schließen</div>
+          </div>
+        </div>
+        <button id="closeHotkeyHelp" class="close-help-btn">Schließen (ESC)</button>
+      </div>
+    </div>
+
     <!-- Save / Import / Reset Bereich -->
     <section class="save-panel">
       <div class="save-controls">
         <button id="exportBtn" class="save-btn">Export</button>
         <button id="importBtn" class="save-btn">Import</button>
         <button id="resetBtn" class="save-btn">Reset</button>
+        <button id="hotkeyBtn" class="save-btn" title="Tastaturkürzel anzeigen (H)">⌨️ Hotkeys</button>
       </div>
       <textarea id="saveString" class="save-textarea" rows="2" placeholder="Speicherstring hier einfügen oder kopieren"></textarea>
     </section>
