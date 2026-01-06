@@ -10,6 +10,7 @@ import researchDefinitions, { checkResearchUnlock } from './research-def.js';
 import prestigeUpgradesList, { calculatePrestigeBonuses } from './prestige-upgrades.js';
 import { calculatePrestigePoints, doPrestige } from './prestige.js';
 import achievementManager from './achievement-manager.js';
+import { showResearchNotification, showMilestoneNotification, showWarning, showInfo } from './notification-system.js';
 
 // Konstruktor
 class Game {
@@ -49,6 +50,15 @@ class Game {
     this.totalPrestigePoints = 0;
     this.startTime = Date.now();
     this.achievementPrestigeBonus = 1;
+    
+    // Milestone-Tracking für Notifications
+    this.milestoneTracking = {
+      energy: [100, 1000, 10000, 100000, 1000000],
+      population: [10, 25, 50, 100, 250],
+      buildings: [5, 10, 20, 50],
+      research: [5, 10, 20, 30]
+    };
+    this.reachedMilestones = new Set();
   }
 
   // ========== Resource Management ==========
@@ -82,6 +92,10 @@ class Game {
     
     resource.amount += amount;
     resource.totalEarned += amount;
+    
+    // Prüfe Milestones
+    this.checkMilestones();
+    
     return true;
   }
   
@@ -213,6 +227,9 @@ class Game {
     // Achievements prüfen
     this.checkAchievements();
     
+    // Milestone-Check
+    this.checkMilestones();
+    
     console.log(`✅ Gekauft: ${def.icon} ${def.name} (${currentCount + 1})`);
     return true;
   }
@@ -301,6 +318,9 @@ class Game {
     
     this.completedResearch.push(researchId);
     
+    // 🆕 Zeige Research-Complete Notification
+    showResearchNotification(def);
+    
     // Effekte anwenden
     this.recalculateProduction();
     
@@ -309,6 +329,9 @@ class Game {
     
     // Achievements prüfen
     this.checkAchievements();
+    
+    // Milestone-Check
+    this.checkMilestones();
     
     console.log(`🔬 Erforscht: ${def.icon} ${def.name}`);
     return true;
@@ -339,7 +362,101 @@ class Game {
       if (currentAmount >= condition.amount) {
         resource.unlocked = true;
         console.log(`🔓 Ressource freigeschaltet: ${resource.icon} ${resource.name}`);
+        
+        // 🆕 Zeige Info-Notification für neue Ressource
+        showInfo(`Neue Ressource: ${resource.icon} ${resource.name}`);
       }
+    }
+  }
+
+  // ========== Milestone Tracking ==========
+  
+  checkMilestones() {
+    // Energie-Milestones
+    const energy = this.resources.energy?.totalEarned || 0;
+    for (const threshold of this.milestoneTracking.energy) {
+      const key = `energy_${threshold}`;
+      if (energy >= threshold && !this.reachedMilestones.has(key)) {
+        this.reachedMilestones.add(key);
+        this.showMilestone('energy', threshold);
+      }
+    }
+    
+    // Bevölkerungs-Milestones
+    const population = this.resources.population?.amount || 0;
+    for (const threshold of this.milestoneTracking.population) {
+      const key = `population_${threshold}`;
+      if (population >= threshold && !this.reachedMilestones.has(key)) {
+        this.reachedMilestones.add(key);
+        this.showMilestone('population', threshold);
+      }
+    }
+    
+    // Gebäude-Milestones
+    const buildings = this.getTotalBuildings();
+    for (const threshold of this.milestoneTracking.buildings) {
+      const key = `buildings_${threshold}`;
+      if (buildings >= threshold && !this.reachedMilestones.has(key)) {
+        this.reachedMilestones.add(key);
+        this.showMilestone('buildings', threshold);
+      }
+    }
+    
+    // Forschungs-Milestones
+    const research = this.completedResearch.length;
+    for (const threshold of this.milestoneTracking.research) {
+      const key = `research_${threshold}`;
+      if (research >= threshold && !this.reachedMilestones.has(key)) {
+        this.reachedMilestones.add(key);
+        this.showMilestone('research', threshold);
+      }
+    }
+    
+    // Spezial-Milestone: Bauplätze voll (Warnung)
+    if (this.usedSpace >= this.maxSpace && !this.reachedMilestones.has('space_full')) {
+      this.reachedMilestones.add('space_full');
+      showWarning('Bauplätze voll! Erweitere deine Kolonie.');
+    }
+    
+    // Reset Space-Warning wenn wieder Platz ist
+    if (this.usedSpace < this.maxSpace && this.reachedMilestones.has('space_full')) {
+      this.reachedMilestones.delete('space_full');
+    }
+  }
+  
+  showMilestone(type, threshold) {
+    const messages = {
+      energy: {
+        100: { text: 'Erste 100 Energie gesammelt!', icon: '⚡' },
+        1000: { text: '1.000 Energie erreicht!', icon: '⚡' },
+        10000: { text: '10.000 Energie produziert!', icon: '⚡' },
+        100000: { text: '100.000 Energie! Beeindruckend!', icon: '⚡' },
+        1000000: { text: '1 Million Energie! Mega-Kolonie!', icon: '⚡' }
+      },
+      population: {
+        10: { text: '10 Kolonisten erreicht!', icon: '👥' },
+        25: { text: '25 Kolonisten! Kleine Gemeinschaft!', icon: '👥' },
+        50: { text: '50 Kolonisten! Wachsende Stadt!', icon: '👥' },
+        100: { text: '100 Kolonisten! Große Kolonie!', icon: '👥' },
+        250: { text: '250 Kolonisten! Mega-Stadt!', icon: '👥' }
+      },
+      buildings: {
+        5: { text: 'Erste 5 Gebäude gebaut!', icon: '🏭' },
+        10: { text: '10 Gebäude! Guter Start!', icon: '🏭' },
+        20: { text: '20 Gebäude! Industrialisierung!', icon: '🏭' },
+        50: { text: '50 Gebäude! Mega-Komplex!', icon: '🏭' }
+      },
+      research: {
+        5: { text: 'Erste 5 Forschungen abgeschlossen!', icon: '🔬' },
+        10: { text: '10 Forschungen erforscht!', icon: '🔬' },
+        20: { text: '20 Forschungen! Wissenschaftliche Elite!', icon: '🔬' },
+        30: { text: '30 Forschungen! Tech-Meister!', icon: '🔬' }
+      }
+    };
+    
+    const milestone = messages[type]?.[threshold];
+    if (milestone) {
+      showMilestoneNotification(milestone.text, milestone.icon);
     }
   }
 
@@ -371,7 +488,7 @@ class Game {
         production *= this.getEfficiencyMultiplier(def.id, resourceId);
         
         // Forschungs-Boni anwenden
-        production *= this.getResearchMultiplier(resourceId);
+        production *= this.getResearchMultiplier(def.id, resourceId);
         
         // Prestige-Boni anwenden
         if (this.prestigeBonuses) {
@@ -438,7 +555,7 @@ class Game {
     return multiplier;
   }
   
-  getResearchMultiplier(resourceId) {
+  getResearchMultiplier(buildingId, resourceId) {
     let multiplier = 1;
     
     for (const researchId of this.completedResearch) {
@@ -457,10 +574,9 @@ class Game {
         multiplier *= effect.multiplier;
       }
 
-      // 🆕 FIX Fusionsbeherrschung - HIER EINFÜGEN (nach production_multiplier Block)
+      // Building-spezifische Forschungen (z.B. Fusionsbeherrschung)
       if (effect.type === 'building_specific' && effect.target === buildingId) {
         multiplier *= effect.multiplier;
-        console.log(`🔬 ${researchDef.name}: ${buildingId} ×${effect.multiplier}`);
       }
       
       // Multiple Ressourcen
@@ -529,6 +645,9 @@ class Game {
     
     // Achievements prüfen
     this.checkAchievements();
+    
+    // Milestones prüfen
+    this.checkMilestones();
   }
 
   startGameLoop() {
@@ -586,6 +705,9 @@ class Game {
     gameState.totalPrestigePoints = this.totalPrestigePoints;
     gameState.startTime = this.startTime;
     gameState.achievementPrestigeBonus = this.achievementPrestigeBonus;
+    
+    // Milestone-Tracking speichern
+    gameState.reachedMilestones = Array.from(this.reachedMilestones);
     
     achievementManager.syncToState();
   }
@@ -650,6 +772,11 @@ class Game {
     this.totalPrestigePoints = gameState.totalPrestigePoints || 0;
     this.startTime = gameState.startTime || Date.now();
     this.achievementPrestigeBonus = gameState.achievementPrestigeBonus || 1;
+    
+    // Milestone-Tracking laden
+    if (gameState.reachedMilestones) {
+      this.reachedMilestones = new Set(gameState.reachedMilestones);
+    }
 
     // Produktion neu berechnen
     this.recalculateProduction();
@@ -682,6 +809,9 @@ class Game {
     // Achievement-Tracking aktualisieren
     this.prestigeCount++;
     this.totalPrestigePoints += pointsGained;
+    
+    // Milestone-Tracking zurücksetzen
+    this.reachedMilestones.clear();
     
     // Game neu initialisieren
     this.syncFromState();
