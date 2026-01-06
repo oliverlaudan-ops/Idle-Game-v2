@@ -536,6 +536,23 @@ class Game {
         }
       }
     }
+    
+    // 🆕 FIX: Research-Multiplikatoren für Click-Werte anwenden
+    for (const researchId of this.completedResearch) {
+      const def = this.getResearchDefinition(researchId);
+      if (!def || !def.effect) continue;
+      
+      const effect = def.effect;
+      
+      // Click-Multiplikator (z.B. Klick-Automatisierung)
+      if (effect.type === 'click_multiplier') {
+        const energyResource = this.resources.energy;
+        if (energyResource) {
+          energyResource.clickValue *= effect.multiplier;
+          console.log(`🔄 ${def.name}: Click-Wert ×${effect.multiplier} = ${energyResource.clickValue}`);
+        }
+      }
+    }
   }
   
   getEfficiencyMultiplier(buildingId, resourceId) {
