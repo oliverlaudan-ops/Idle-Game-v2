@@ -456,6 +456,12 @@ class Game {
       if (effect.type === 'production_multiplier' && effect.resource === resourceId) {
         multiplier *= effect.multiplier;
       }
+
+      // 🆕 FIX Fusionsbeherrschung - HIER EINFÜGEN (nach production_multiplier Block)
+      if (effect.type === 'building_specific' && effect.target === buildingId) {
+        multiplier *= effect.multiplier;
+        console.log(`🔬 ${researchDef.name}: ${buildingId} ×${effect.multiplier}`);
+      }
       
       // Multiple Ressourcen
       if (effect.type === 'production_multiplier' && effect.resources) {
