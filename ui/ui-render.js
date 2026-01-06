@@ -487,7 +487,7 @@ function createUpgradeCard(game, def) {
     info.textContent = `Stufe: ${currentCount}`;
   }
   
-  // 🆕 FIX: Produktion anzeigen (bei Generatoren) - MIT ALLEN BONI
+  // Produktion anzeigen (bei Generatoren) - MIT ALLEN BONI
   if (def.produces && currentCount > 0) {
     const prodP = document.createElement('p');
     prodP.className = 'production-info';
@@ -545,11 +545,35 @@ function createUpgradeCard(game, def) {
     buyBtn.textContent = canBuy ? 'Kaufen' : 'Nicht genug';
   }
   
-  buyBtn.onclick = () => {
-    if (game.buyUpgrade(def.id)) {
-      renderAll(game);
+  // 🆕 BULK-BUY mit Shift+Klick
+  buyBtn.onclick = (event) => {
+    const bulkAmount = event.shiftKey ? 10 : 1;
+    
+    if (bulkAmount === 10) {
+      // Versuche 10x zu kaufen
+      let bought = 0;
+      for (let i = 0; i < 10; i++) {
+        if (game.buyUpgrade(def.id)) {
+          bought++;
+        } else {
+          break; // Nicht mehr genug Ressourcen oder Platz
+        }
+      }
+      
+      if (bought > 0) {
+        renderAll(game);
+        showBulkBuyNotification(def, bought);
+      }
+    } else {
+      // Normaler Einzelkauf
+      if (game.buyUpgrade(def.id)) {
+        renderAll(game);
+      }
     }
   };
+  
+  // 🆕 Tooltip für Bulk-Buy Hinweis
+  buyBtn.title = 'Kaufen (Shift+Klick für 10x)';
   
   btnContainer.appendChild(buyBtn);
   
@@ -613,6 +637,41 @@ function createUpgradeCard(game, def) {
   card.appendChild(btnContainer);
   
   return card;
+}
+
+// 🆕 Notification für Bulk-Buy
+function showBulkBuyNotification(def, amount) {
+  let notification = document.getElementById('notification');
+  
+  if (!notification) {
+    notification = document.createElement('div');
+    notification.id = 'notification';
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #4CAF50;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 4px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      z-index: 10000;
+      animation: slideIn 0.3s ease-out;
+    `;
+    document.body.appendChild(notification);
+  }
+  
+  notification.textContent = `🚀 ${amount}x ${def.icon} ${def.name} gekauft!`;
+  notification.style.display = 'block';
+  notification.style.background = '#FF9800'; // Orange für Bulk-Buy
+  
+  // Nach 2 Sekunden ausblenden
+  setTimeout(() => {
+    notification.style.animation = 'slideOut 0.3s ease-out';
+    setTimeout(() => {
+      notification.style.display = 'none';
+    }, 300);
+  }, 2000);
 }
 
 // ========== Research Card Creation ==========
