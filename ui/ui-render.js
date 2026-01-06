@@ -27,10 +27,13 @@ export function formatRate(n) {
 }
 
 function formatPlaytime(seconds) {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  if (h > 0) return `${h}h ${m}m`;
-  return `${m}m`;
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  
+  if (days > 0) return `${days}d ${hours}h ${mins}m`;
+  if (hours > 0) return `${hours}h ${mins}m`;
+  return `${mins}m`;
 }
 
 // ========== Stats Bar Rendering ==========
@@ -252,6 +255,196 @@ export function renderResearch(game) {
     
     game.researchGridEl.appendChild(col);
   }
+}
+
+// ========== Statistics Rendering ==========
+
+export function renderStatistics(game) {
+  const container = document.getElementById('statisticsContainer');
+  if (!container) return;
+  
+  container.innerHTML = '';
+  
+  const stats = game.getStatistics();
+  
+  // 🕒 Spielzeit Sektion
+  const playtimeSection = document.createElement('div');
+  playtimeSection.className = 'stats-section';
+  playtimeSection.innerHTML = `
+    <h3>🕒 Spielzeit</h3>
+    <div class="stats-grid">
+      <div class="stat-item">
+        <div class="stat-label">Gesamte Spielzeit</div>
+        <div class="stat-value accent">${formatPlaytime(stats.totalPlaytime)}</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">Total Klicks</div>
+        <div class="stat-value">${formatAmount(stats.totalClicks)}</div>
+      </div>
+    </div>
+  `;
+  container.appendChild(playtimeSection);
+  
+  // ⚡ Ressourcen Sektion
+  const resourceSection = document.createElement('div');
+  resourceSection.className = 'stats-section';
+  resourceSection.innerHTML = '<h3>⚡ Ressourcen (All-Time)</h3>';
+  
+  const resourceGrid = document.createElement('div');
+  resourceGrid.className = 'stats-grid';
+  
+  for (const [resId, amount] of Object.entries(stats.totalResourcesEarned)) {
+    const resource = game.resources[resId];
+    if (!resource || !resource.unlocked) continue;
+    
+    const item = document.createElement('div');
+    item.className = 'stat-item';
+    item.innerHTML = `
+      <div class="stat-label">${resource.icon} ${resource.name} (Total)</div>
+      <div class="stat-value success">${formatAmount(amount)}</div>
+    `;
+    resourceGrid.appendChild(item);
+  }
+  
+  resourceSection.appendChild(resourceGrid);
+  container.appendChild(resourceSection);
+  
+  // 📈 Produktions-Rekorde
+  const peakSection = document.createElement('div');
+  peakSection.className = 'stats-section';
+  peakSection.innerHTML = '<h3>📈 Peak Production Rates</h3>';
+  
+  const peakGrid = document.createElement('div');
+  peakGrid.className = 'stats-grid';
+  
+  for (const [resId, peakRate] of Object.entries(stats.peakProduction)) {
+    const resource = game.resources[resId];
+    if (!resource || !resource.unlocked || peakRate === 0) continue;
+    
+    const item = document.createElement('div');
+    item.className = 'stat-item';
+    item.innerHTML = `
+      <div class="stat-label">${resource.icon} ${resource.name}/s (Peak)</div>
+      <div class="stat-value warning">${formatRate(peakRate)}</div>
+    `;
+    peakGrid.appendChild(item);
+  }
+  
+  peakSection.appendChild(peakGrid);
+  container.appendChild(peakSection);
+  
+  // 🏭 Gebäude & Upgrades
+  const buildingSection = document.createElement('div');
+  buildingSection.className = 'stats-section';
+  buildingSection.innerHTML = '<h3>🏭 Gebäude & Upgrades</h3>';
+  
+  const buildingGrid = document.createElement('div');
+  buildingGrid.className = 'stats-grid';
+  
+  // Most owned building
+  let mostOwnedName = 'Noch keine';
+  if (stats.mostOwnedBuilding.id) {
+    const def = game.getUpgradeDefinition(stats.mostOwnedBuilding.id);
+    if (def) {
+      mostOwnedName = `${def.icon} ${def.name} (${stats.mostOwnedBuilding.count}x)`;
+    }
+  }
+  
+  buildingGrid.innerHTML = `
+    <div class="stat-item">
+      <div class="stat-label">Total gekaufte Upgrades</div>
+      <div class="stat-value">${formatAmount(stats.totalUpgradesBought)}</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">Total abgerissene Gebäude</div>
+      <div class="stat-value">${formatAmount(stats.totalUpgradesSold)}</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">Aktuelle Gebäude</div>
+      <div class="stat-value accent">${stats.currentBuildings}</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">Meist gebautes Gebäude</div>
+      <div class="stat-value" style="font-size: 14px;">${mostOwnedName}</div>
+    </div>
+  `;
+  
+  buildingSection.appendChild(buildingGrid);
+  container.appendChild(buildingSection);
+  
+  // 🔬 Forschung
+  const researchSection = document.createElement('div');
+  researchSection.className = 'stats-section';
+  researchSection.innerHTML = `
+    <h3>🔬 Forschung</h3>
+    <div class="stats-grid">
+      <div class="stat-item">
+        <div class="stat-label">Total Forschungen</div>
+        <div class="stat-value">${stats.totalResearchCompleted}</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">Aktuell erforscht</div>
+        <div class="stat-value accent">${stats.currentResearch}</div>
+      </div>
+    </div>
+  `;
+  container.appendChild(researchSection);
+  
+  // 🌟 Prestige
+  const prestigeSection = document.createElement('div');
+  prestigeSection.className = 'stats-section';
+  prestigeSection.innerHTML = '<h3>🌟 Prestige</h3>';
+  
+  const prestigeGrid = document.createElement('div');
+  prestigeGrid.className = 'stats-grid';
+  
+  prestigeGrid.innerHTML = `
+    <div class="stat-item">
+      <div class="stat-label">Prestige-Zähler</div>
+      <div class="stat-value warning">${stats.prestigeCount}</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">Total Prestige-Punkte</div>
+      <div class="stat-value warning">${stats.totalPrestigePoints}</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">Aktuelle Punkte</div>
+      <div class="stat-value accent">${stats.currentPrestigePoints}</div>
+    </div>
+  `;
+  
+  prestigeSection.appendChild(prestigeGrid);
+  
+  // Prestige History
+  if (stats.prestigeHistory.length > 0) {
+    const historyDiv = document.createElement('div');
+    historyDiv.innerHTML = '<h4 style="margin: 16px 0 8px; color: var(--text-muted); font-size: 14px;">Prestige-Historie (Letzte 10)</h4>';
+    
+    const historyList = document.createElement('div');
+    historyList.className = 'prestige-history';
+    
+    // Zeige nur die letzten 10
+    const recentHistory = stats.prestigeHistory.slice(-10).reverse();
+    
+    recentHistory.forEach(entry => {
+      const date = new Date(entry.date);
+      const item = document.createElement('div');
+      item.className = 'prestige-history-item';
+      item.innerHTML = `
+        <span class="date">${date.toLocaleDateString('de-DE')} ${date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}</span>
+        <span class="points">+${entry.pointsGained} 🌟</span>
+      `;
+      historyList.appendChild(item);
+    });
+    
+    historyDiv.appendChild(historyList);
+    prestigeSection.appendChild(prestigeGrid);
+    prestigeSection.appendChild(historyDiv);
+  } else {
+    prestigeSection.appendChild(prestigeGrid);
+  }
+  
+  container.appendChild(prestigeSection);
 }
 
 // ========== Upgrade Card Creation ==========
@@ -731,7 +924,12 @@ export function renderAll(game) {
   renderResearch(game);
   renderPrestigeContainer(game);
   
-  // Achievements nur rendern wenn Tab aktiv
+  // Tab-spezifisches Rendering
+  const statisticsContainer = document.getElementById('statisticsContainer');
+  if (statisticsContainer && statisticsContainer.style.display !== 'none') {
+    renderStatistics(game);
+  }
+  
   const achievementContainer = document.getElementById('achievementsContainer');
   if (achievementContainer && achievementContainer.style.display !== 'none') {
     renderAchievements(game);
