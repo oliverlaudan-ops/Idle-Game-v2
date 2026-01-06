@@ -51,6 +51,28 @@ class Game {
     this.startTime = Date.now();
     this.achievementPrestigeBonus = 1;
     
+    // 🆕 Statistics Tracking
+    this.statistics = {
+      // Ressourcen-Stats (All-Time)
+      totalResourcesEarned: {}, // { resourceId: totalAmount }
+      peakProduction: {}, // { resourceId: highestPerSecond }
+      
+      // Upgrade/Building-Stats
+      totalUpgradesBought: 0,
+      totalUpgradesSold: 0,
+      mostOwnedBuilding: { id: null, count: 0 },
+      
+      // Research-Stats
+      totalResearchCompleted: 0,
+      
+      // Prestige-Stats
+      prestigeHistory: [], // [{ date: timestamp, pointsGained: X }]
+      
+      // Spielzeit
+      playtimeSeconds: 0,
+      lastUpdateTime: Date.now()
+    };
+    
     // Milestone-Tracking für Notifications
     this.milestoneTracking = {
       energy: [100, 1000, 10000, 100000, 1000000],
@@ -79,6 +101,14 @@ class Game {
         baseClickValue: def.clickValue || 0, // Basis-Wert speichern
         color: def.color
       };
+      
+      // 🆕 Initialize stats for this resource
+      if (!this.statistics.totalResourcesEarned[def.id]) {
+        this.statistics.totalResourcesEarned[def.id] = 0;
+      }
+      if (!this.statistics.peakProduction[def.id]) {
+        this.statistics.peakProduction[def.id] = 0;
+      }
     }
   }
   
@@ -92,6 +122,9 @@ class Game {
     
     resource.amount += amount;
     resource.totalEarned += amount;
+    
+    // 🆕 Update statistics
+    this.statistics.totalResourcesEarned[resourceId] = (this.statistics.totalResourcesEarned[resourceId] || 0) + amount;
     
     // Prüfe Milestones
     this.checkMilestones();
@@ -218,6 +251,10 @@ class Game {
     
     this.upgrades[upgradeId] = currentCount + 1;
     
+    // 🆕 Update statistics
+    this.statistics.totalUpgradesBought++;
+    this.updateMostOwnedBuilding();
+    
     // Effekte anwenden (bei Effizienz-Upgrades etc.)
     this.recalculateProduction();
     
@@ -260,6 +297,10 @@ class Game {
     // Reduziere Count
     this.upgrades[upgradeId] = currentCount - 1;
     
+    // 🆕 Update statistics
+    this.statistics.totalUpgradesSold++;
+    this.updateMostOwnedBuilding();
+    
     // Gebe Ressourcen zurück
     for (const [resourceId, amount] of Object.entries(refund)) {
       this.addResourceAmount(resourceId, amount);
@@ -270,6 +311,24 @@ class Game {
     
     console.log(`💥 Abgerissen: ${def.icon} ${def.name} - Rückerstattung: 50%`);
     return true;
+  }
+  
+  // 🆕 Update most owned building statistic
+  updateMostOwnedBuilding() {
+    let maxCount = 0;
+    let maxId = null;
+    
+    for (const def of this.upgradeDefinitions) {
+      if (def.type === 'generator') {
+        const count = this.upgrades[def.id] || 0;
+        if (count > maxCount) {
+          maxCount = count;
+          maxId = def.id;
+        }
+      }
+    }
+    
+    this.statistics.mostOwnedBuilding = { id: maxId, count: maxCount };
   }
   
   checkUpgradeUnlocks() {
@@ -317,6 +376,9 @@ class Game {
     if (!this.spendResources(def.cost)) return false;
     
     this.completedResearch.push(researchId);
+    
+    // 🆕 Update statistics
+    this.statistics.totalResearchCompleted++;
     
     // 🆕 Zeige Research-Complete Notification
     showResearchNotification(def);
@@ -504,6 +566,13 @@ class Game {
       }
     }
     
+    // 🆕 Update peak production statistics
+    for (const [resourceId, resource] of Object.entries(this.resources)) {
+      if (resource.perSecond > (this.statistics.peakProduction[resourceId] || 0)) {
+        this.statistics.peakProduction[resourceId] = resource.perSecond;
+      }
+    }
+    
     // Platz neu berechnen
     this.usedSpace = this.getUsedSpace();
     this.maxSpace = 10; // Basis
@@ -605,6 +674,47 @@ class Game {
     }
     
     return multiplier;
+  }
+
+  // ========== Statistics Methods ==========
+  
+  getStatistics() {
+    // Update playtime
+    const now = Date.now();
+    const deltaSeconds = (now - this.statistics.lastUpdateTime) / 1000;
+    this.statistics.playtimeSeconds += deltaSeconds;
+    this.statistics.lastUpdateTime = now;
+    
+    return {
+      // Spielzeit
+      totalPlaytime: this.statistics.playtimeSeconds,
+      
+      // Ressourcen
+      totalResourcesEarned: this.statistics.totalResourcesEarned,
+      peakProduction: this.statistics.peakProduction,
+      currentProduction: Object.fromEntries(
+        Object.entries(this.resources).map(([id, res]) => [id, res.perSecond])
+      ),
+      
+      // Upgrades/Buildings
+      totalUpgradesBought: this.statistics.totalUpgradesBought,
+      totalUpgradesSold: this.statistics.totalUpgradesSold,
+      mostOwnedBuilding: this.statistics.mostOwnedBuilding,
+      currentBuildings: this.getTotalBuildings(),
+      
+      // Research
+      totalResearchCompleted: this.statistics.totalResearchCompleted,
+      currentResearch: this.completedResearch.length,
+      
+      // Prestige
+      prestigeCount: this.prestigeCount,
+      totalPrestigePoints: this.totalPrestigePoints,
+      currentPrestigePoints: this.resources.prestige?.amount || 0,
+      prestigeHistory: this.statistics.prestigeHistory,
+      
+      // Clicks
+      totalClicks: this.totalClicks
+    };
   }
 
   // ========== Game Data Setup ==========
@@ -726,6 +836,9 @@ class Game {
     // Milestone-Tracking speichern
     gameState.reachedMilestones = Array.from(this.reachedMilestones);
     
+    // 🆕 Statistics speichern
+    gameState.statistics = this.statistics;
+    
     achievementManager.syncToState();
   }
 
@@ -794,6 +907,25 @@ class Game {
     if (gameState.reachedMilestones) {
       this.reachedMilestones = new Set(gameState.reachedMilestones);
     }
+    
+    // 🆕 Statistics laden
+    if (gameState.statistics) {
+      this.statistics = {
+        ...this.statistics, // Defaults beibehalten
+        ...gameState.statistics,
+        lastUpdateTime: Date.now() // Reset update time
+      };
+      
+      // Ensure alle resource stats existieren
+      for (const def of resourceDefinitions) {
+        if (!this.statistics.totalResourcesEarned[def.id]) {
+          this.statistics.totalResourcesEarned[def.id] = 0;
+        }
+        if (!this.statistics.peakProduction[def.id]) {
+          this.statistics.peakProduction[def.id] = 0;
+        }
+      }
+    }
 
     // Produktion neu berechnen
     this.recalculateProduction();
@@ -826,6 +958,12 @@ class Game {
     // Achievement-Tracking aktualisieren
     this.prestigeCount++;
     this.totalPrestigePoints += pointsGained;
+    
+    // 🆕 Add to prestige history
+    this.statistics.prestigeHistory.push({
+      date: Date.now(),
+      pointsGained
+    });
     
     // Milestone-Tracking zurücksetzen
     this.reachedMilestones.clear();
