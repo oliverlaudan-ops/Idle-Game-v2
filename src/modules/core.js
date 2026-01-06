@@ -267,7 +267,6 @@ class Game {
     // Milestone-Check
     this.checkMilestones();
     
-    console.log(`✅ Gekauft: ${def.icon} ${def.name} (${currentCount + 1})`);
     return true;
   }
   
@@ -309,7 +308,6 @@ class Game {
     // Produktion neu berechnen
     this.recalculateProduction();
     
-    console.log(`💥 Abgerissen: ${def.icon} ${def.name} - Rückerstattung: 50%`);
     return true;
   }
   
@@ -335,7 +333,6 @@ class Game {
     for (const def of this.upgradeDefinitions) {
       if (!def.unlocked && checkUpgradeUnlock(def.id, gameState, this.upgrades)) {
         def.unlocked = true;
-        console.log(`🔓 Upgrade freigeschaltet: ${def.icon} ${def.name}`);
       }
     }
   }
@@ -395,7 +392,6 @@ class Game {
     // Milestone-Check
     this.checkMilestones();
     
-    console.log(`🔬 Erforscht: ${def.icon} ${def.name}`);
     return true;
   }
   
@@ -403,7 +399,6 @@ class Game {
     for (const def of this.researchDefinitions) {
       if (!def.unlocked && checkResearchUnlock(def.id, gameState, this.completedResearch)) {
         def.unlocked = true;
-        console.log(`🔓 Forschung freigeschaltet: ${def.icon} ${def.name}`);
       }
     }
     
@@ -423,7 +418,6 @@ class Game {
       
       if (currentAmount >= condition.amount) {
         resource.unlocked = true;
-        console.log(`🔓 Ressource freigeschaltet: ${resource.icon} ${resource.name}`);
         
         // 🆕 Zeige Info-Notification für neue Ressource
         showInfo(`Neue Ressource: ${resource.icon} ${resource.name}`);
@@ -606,7 +600,7 @@ class Game {
       }
     }
     
-    // 🆕 FIX: Research-Multiplikatoren für Click-Werte anwenden
+    // Research-Multiplikatoren für Click-Werte anwenden
     for (const researchId of this.completedResearch) {
       const def = this.getResearchDefinition(researchId);
       if (!def || !def.effect) continue;
@@ -618,7 +612,6 @@ class Game {
         const energyResource = this.resources.energy;
         if (energyResource) {
           energyResource.clickValue *= effect.multiplier;
-          console.log(`🔄 ${def.name}: Click-Wert ×${effect.multiplier} = ${energyResource.clickValue}`);
         }
       }
     }
@@ -630,14 +623,12 @@ class Game {
     // Prüfe Effizienz-Upgrades
     for (const def of this.upgradeDefinitions) {
       if (def.type !== 'efficiency') continue;
-      // 🐛 FIX: War === 0, jetzt < 1 (damit gekaufte Upgrades mit count=1 erkannt werden)
       const count = this.upgrades[def.id] || 0;
       if (count < 1) continue;
       if (!def.effect || !def.effect.target) continue;
       
       if (def.effect.target === buildingId) {
         multiplier *= def.effect.multiplier;
-        console.log(`🔧 Effizienz-Bonus: ${def.name} für ${buildingId} - ×${def.effect.multiplier}`);
       }
     }
     
@@ -847,8 +838,6 @@ class Game {
 
   syncFromState() {
     console.log('📥 Lade Spielstand...');
-    console.log('gameState.upgrades:', gameState.upgrades);
-    console.log('gameState.resources:', Object.keys(gameState.resources || {}).length, 'Ressourcen');
     
     // Ressourcen laden
     if (gameState.resources) {
@@ -866,9 +855,6 @@ class Game {
     
     if (gameState.upgrades) {
       this.upgrades = {...gameState.upgrades};
-      console.log('✅ Upgrades geladen:', Object.keys(this.upgrades).filter(k => this.upgrades[k] > 0));
-    } else {
-      console.log('ℹ️ Keine Upgrades im State vorhanden');
     }
     
     // Forschung laden - WICHTIG: Erst Definitions neu initialisieren!
@@ -876,9 +862,6 @@ class Game {
     
     if (gameState.completedResearch) {
       this.completedResearch = [...gameState.completedResearch];
-      console.log('✅ Forschungen geladen:', this.completedResearch.length);
-    } else {
-      console.log('ℹ️ Keine Forschungen im State vorhanden');
     }
     
     // Prestige-Upgrades laden
