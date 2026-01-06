@@ -9,10 +9,10 @@ import {
   renderStatsBar,
   renderActions,
   renderUpgrades,
-  renderAchievements,
-  showAchievementNotification
+  renderAchievements
 } from './ui-render.js';
 
+import { showAchievementNotification } from '../src/modules/notification-system.js';
 import gameState from '../src/modules/game-state.js';
 
 // ========== DOM Setup ==========
@@ -93,7 +93,7 @@ function setupSaveButtons(game) {
       console.log('✅ localStorage gelöscht');
       console.log('🔍 Verifikation:', localStorage.getItem('gameState'));
       
-      console.log('🟬 ========== RESET ABGESCHLOSSEN ==========');
+      console.log('🟥 ========== RESET ABGESCHLOSSEN ==========');
       console.log('🔄 Lade Seite neu SOFORT...');
       
       // Sofort neu laden ohne Verzögerung
