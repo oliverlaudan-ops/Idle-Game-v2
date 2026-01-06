@@ -153,39 +153,67 @@ class HotkeyManager {
   }
   
   switchTab(tabName) {
-    // Deaktiviere alle Tabs
+    // Deaktiviere alle Tab-Buttons
     const tabs = document.querySelectorAll('.tab-btn');
     tabs.forEach(tab => {
       tab.classList.remove('active');
     });
     
-    // Verstecke alle Tab-Contents
-    const contents = document.querySelectorAll('[data-tab]');
-    contents.forEach(content => {
-      content.style.display = 'none';
-    });
+    // Verstecke alle Tab-Content-Container (nur die divs im .tab-content Bereich)
+    const upgradeGrid = document.getElementById('upgradeGrid');
+    const researchGrid = document.getElementById('researchGrid');
+    const statsContainer = document.getElementById('statisticsContainer');
+    const achievementsContainer = document.getElementById('achievementsContainer');
+    const prestigeContainer = document.getElementById('prestigeContainer');
     
-    // Aktiviere gewählten Tab
+    if (upgradeGrid) upgradeGrid.style.display = 'none';
+    if (researchGrid) researchGrid.style.display = 'none';
+    if (statsContainer) statsContainer.style.display = 'none';
+    if (achievementsContainer) achievementsContainer.style.display = 'none';
+    if (prestigeContainer) prestigeContainer.style.display = 'none';
+    
+    // Aktiviere gewählten Tab-Button
     const selectedTab = document.querySelector(`.tab-btn[data-tab="${tabName}"]`);
     if (selectedTab) {
       selectedTab.classList.add('active');
     }
     
     // Zeige gewählten Content
-    const selectedContent = document.querySelector(`[data-tab="${tabName}"]`);
-    if (selectedContent) {
-      selectedContent.style.display = tabName === 'upgrades' || tabName === 'research' ? 'flex' : 'block';
-      
-      // Render tab-specific content
-      if (tabName === 'statistics') {
-        import('./ui-render.js').then(module => {
-          module.renderStatistics(this.game);
-        });
-      } else if (tabName === 'achievements') {
-        import('./ui-render.js').then(module => {
-          module.renderAchievements(this.game);
-        });
-      }
+    let selectedContent = null;
+    
+    switch(tabName) {
+      case 'upgrades':
+        selectedContent = upgradeGrid;
+        if (selectedContent) selectedContent.style.display = 'flex';
+        break;
+      case 'research':
+        selectedContent = researchGrid;
+        if (selectedContent) selectedContent.style.display = 'flex';
+        break;
+      case 'statistics':
+        selectedContent = statsContainer;
+        if (selectedContent) {
+          selectedContent.style.display = 'block';
+          // Render statistics
+          import('./ui-render.js').then(module => {
+            module.renderStatistics(this.game);
+          });
+        }
+        break;
+      case 'achievements':
+        selectedContent = achievementsContainer;
+        if (selectedContent) {
+          selectedContent.style.display = 'block';
+          // Render achievements
+          import('./ui-render.js').then(module => {
+            module.renderAchievements(this.game);
+          });
+        }
+        break;
+      case 'prestige':
+        selectedContent = prestigeContainer;
+        if (selectedContent) selectedContent.style.display = 'block';
+        break;
     }
     
     console.log(`📋 Tab gewechselt: ${tabName}`);
