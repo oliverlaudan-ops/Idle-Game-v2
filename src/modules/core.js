@@ -58,7 +58,7 @@ class Game {
       peakProduction: {}, // { resourceId: highestPerSecond }
       
       // Upgrade/Building-Stats
-      totalUpgradesBought: 0,
+      totalUpgradesBought: 0;
       totalUpgradesSold: 0,
       mostOwnedBuilding: { id: null, count: 0 },
       
@@ -268,6 +268,41 @@ class Game {
     this.checkMilestones();
     
     return true;
+  }
+  
+  // 🆕 Bulk-Buy: Kaufe mehrere Upgrades auf einmal
+  bulkBuyUpgrade(upgradeId, amount = 10) {
+    const def = this.getUpgradeDefinition(upgradeId);
+    if (!def) return 0;
+    
+    let bought = 0;
+    
+    // Kaufe so viele wie möglich (bis amount oder bis nicht mehr möglich)
+    for (let i = 0; i < amount; i++) {
+      const currentCount = this.getUpgradeCount(upgradeId);
+      
+      // Prüfe max count
+      if (def.maxCount !== -1 && currentCount >= def.maxCount) {
+        break;
+      }
+      
+      // Prüfe Platz
+      if (def.size > 0) {
+        const usedSpace = this.getUsedSpace();
+        if (usedSpace + def.size > this.maxSpace) {
+          break;
+        }
+      }
+      
+      // Versuche zu kaufen
+      if (this.buyUpgrade(upgradeId)) {
+        bought++;
+      } else {
+        break; // Nicht genug Ressourcen
+      }
+    }
+    
+    return bought;
   }
   
   canDemolishUpgrade(upgradeId) {
