@@ -22,7 +22,12 @@ Baue und verwalte deine eigene Weltraumkolonie! Sammle Ressourcen, errichte Geb�
   - Tier 1: Grundlegende Technologien (6 Forschungen)
   - Tier 2: Fortgeschrittene Systeme (7 Forschungen)
   - Tier 3: Hochentwickelte Technologien (10 Forschungen)
-- 🏆 **40+ Achievements**: Sammel Erfolge und schalte Belohnungen frei
+- 🏆 **34 Achievements**: Sammel Erfolge und schalte Belohnungen frei
+  - 13 Ressourcen-Meilensteine
+  - 7 Gebäude-Achievements
+  - 6 Forschungs-Achievements
+  - 4 Prestige-Achievements
+  - 4 Spezielle Herausforderungen (inkl. 2 versteckte)
 - 🌟 **Prestige-System**: Reset mit permanenten Boni für schnelleren Fortschritt
   - 15+ Prestige-Upgrades in mehreren Kategorien
   - Permanente Produktions- und Effizienz-Boni
@@ -83,7 +88,7 @@ Idle-Game-v2/
 │       ├── research-def.js        # Forschungs-Baum (23 Items)
 │       ├── achievement-class.js   # Achievement-Klasse
 │       ├── achievement-manager.js # Achievement-Logik
-│       ├── achievements-list.js   # Achievement-Definitionen (40+)
+│       ├── achievements-list.js   # Achievement-Definitionen (34 Items)
 │       ├── prestige.js            # Prestige-Logik & Calculation
 │       ├── prestige-upgrades.js   # Prestige-Upgrade-Definitionen (15+)
 │       ├── notification-system.js # In-Game Benachrichtigungen
@@ -181,7 +186,7 @@ Das Spiel ist in übersichtliche Tabs organisiert:
 ## 🔄 Updates & Changelog
 
 ### Version 2.0 (Januar 2026)
-- ✅ Vollständiges Achievement-System (40+ Achievements)
+- ✅ Vollständiges Achievement-System (34 Achievements)
 - ✅ Prestige-System mit 15+ permanenten Upgrades
 - ✅ Demolish-Feature für Gebäude
 - ✅ 5 Bauplatz-Erweiterungen (10 → 85 Plätze)
