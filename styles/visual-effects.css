@@ -205,27 +205,22 @@ button:active::after {
   }
 }
 
-/* ========== Tab Transitions ========== */
+/* ========== Tab Transitions (FIXED: Clean Background Highlight) ========== */
 
 .tab-btn {
   transition: all 0.2s ease-out;
   position: relative;
 }
 
-.tab-btn::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  width: 0;
-  height: 2px;
+/* Clean active state with background highlight */
+.tab-btn.active {
   background: var(--accent);
-  transform: translateX(-50%);
-  transition: width 0.3s ease-out;
+  color: var(--bg-main);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
 }
 
-.tab-btn.active::after {
-  width: 80%;
+.tab-btn:hover:not(.active) {
+  background: rgba(99, 102, 241, 0.1);
 }
 
 /* ========== Achievement Cards ========== */
