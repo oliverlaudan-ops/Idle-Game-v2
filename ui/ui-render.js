@@ -3,7 +3,8 @@
  * Alle Rendering- und Formatierungsfunktionen für Space Colonies
  * 🎨 Enhanced with visual hierarchy and better feedback
  * 🔧 QoL: Sorting, Filtering, Buy Max, Tooltips
- * 📊 Active Upgrades in Right Sidebar with Auto-Save Indicator
+ * 📈 Active Upgrades in Right Sidebar with Auto-Save Indicator
+ * ✅ FIXED: Badge overlap issue - count badge now inline
  */
 
 import gameState from '../src/modules/game-state.js';
@@ -217,7 +218,7 @@ export function renderUpgrades(game) {
     }
   }
   
-  // 📊 Aktive Upgrades in RIGHT SIDEBAR
+  // 📈 Aktive Upgrades in RIGHT SIDEBAR
   const activeUpgrades = [...efficiency, ...click, ...space].filter(def => {
     const count = game.getUpgradeCount(def.id);
     return count > 0;
@@ -288,7 +289,7 @@ export function renderUpgrades(game) {
   game.upgradeGridEl.appendChild(layout);
 }
 
-// 📊 Create Sidebar Active Upgrades
+// 📈 Create Sidebar Active Upgrades
 function createSidebarActiveUpgrades(game, activeUpgrades) {
   const section = document.createElement('div');
   section.style.cssText = 'background: linear-gradient(135deg, var(--bg-panel-soft) 0%, var(--bg-panel) 100%); border-radius: 12px; border: 2px solid var(--success); padding: 16px;';
@@ -325,7 +326,7 @@ function createSidebarActiveUpgrades(game, activeUpgrades) {
   return section;
 }
 
-// 📊 Create Compact Sidebar Group Card
+// 📈 Create Compact Sidebar Group Card
 function createSidebarGroupCard(game, group) {
   const card = document.createElement('div');
   card.style.cssText = 'padding: 10px; background: var(--bg-panel); border-radius: 6px; border: 1px solid var(--border-soft);';
@@ -431,7 +432,7 @@ function groupUpgradesByBaseName(upgrades) {
   });
 }
 
-// 📊 Calculate total effect for a group
+// 📈 Calculate total effect for a group
 function calculateGroupedEffect(game, group) {
   if (group.type === 'efficiency') {
     // Sum up all efficiency multipliers
@@ -909,7 +910,7 @@ function createUpgradeCard(game, def) {
   const affordability = getAffordabilityStatus(game, cost);
   card.classList.add(affordability.cssClass);
   
-  // 🏷️ Size Badge (nur bei Gebäuden mit size > 0)
+  // 🏷️ Size Badge (nur bei Gebäuden mit size > 0) - TOP RIGHT
   if (def.size > 0) {
     const sizeBadge = document.createElement('div');
     sizeBadge.className = `size-badge size-${def.size}`;
@@ -917,26 +918,21 @@ function createUpgradeCard(game, def) {
     card.appendChild(sizeBadge);
   }
   
-  // Titel mit Count Badge
-  const titleContainer = document.createElement('div');
-  titleContainer.style.display = 'flex';
-  titleContainer.style.alignItems = 'center';
-  titleContainer.style.gap = '6px';
-  
+  // ✅ FIXED: Titel mit Count Badge INLINE
   const title = document.createElement('h3');
-  title.style.margin = '0';
+  title.style.margin = '0 0 6px';
+  title.style.paddingRight = '80px'; // Space for size badge
   title.textContent = `${def.icon} ${def.name}`;
-  titleContainer.appendChild(title);
   
-  // Count Badge
+  // Count Badge INLINE im Titel
   if (currentCount > 0) {
     const countBadge = document.createElement('span');
     countBadge.className = 'count-badge';
     countBadge.textContent = `×${currentCount}`;
-    titleContainer.appendChild(countBadge);
+    title.appendChild(countBadge);
   }
   
-  card.appendChild(titleContainer);
+  card.appendChild(title);
   
   // 🆕 Tooltip mit detaillierten Infos
   if (uiState.showTooltips) {
@@ -982,7 +978,7 @@ function createUpgradeCard(game, def) {
   
   card.appendChild(info);
   
-  // 📊 Produktion anzeigen (bei Generatoren) - MIT ALLEN BONI
+  // 📈 Produktion anzeigen (bei Generatoren) - MIT ALLEN BONI
   if (def.produces && currentCount > 0) {
     const prodP = document.createElement('p');
     prodP.className = 'production-info';
@@ -1161,7 +1157,7 @@ function generateTooltip(game, def, currentCount) {
   lines.push(`Stufe: ${currentCount}`);
   
   if (def.produces) {
-    lines.push('\n📊 Produktion pro Gebäude:');
+    lines.push('\n📈 Produktion pro Gebäude:');
     
     for (const [resourceId, baseAmount] of Object.entries(def.produces)) {
       const resource = game.resources[resourceId];
