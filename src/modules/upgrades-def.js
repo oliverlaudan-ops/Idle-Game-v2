@@ -97,7 +97,7 @@ const upgradeDefinitions = [
     maxCount: -1,
     baseCost: {
       energy: 200,
-      metal: 30
+      metal: 20  // REDUZIERT: war 30 Metal
     },
     costScaling: 1.18,
     produces: {
@@ -106,7 +106,7 @@ const upgradeDefinitions = [
     unlocked: false,
     requires: {
       resource: 'metal',
-      amount: 50
+      amount: 30  // REDUZIERT: war 50 Metal
     }
   },
   
@@ -131,7 +131,7 @@ const upgradeDefinitions = [
     unlocked: false,
     requires: {
       resource: 'water',
-      amount: 10
+      amount: 5  // REDUZIERT: war 10 Wasser
     }
   },
   
@@ -176,12 +176,12 @@ const upgradeDefinitions = [
     },
     costScaling: 1.2,
     produces: {
-      population: 0.05 // Langsames Wachstum
+      population: 0.08  // ERHOHT: war 0.05 (+60%)
     },
     unlocked: false,
     requires: {
       resource: 'food',
-      amount: 20
+      amount: 15  // REDUZIERT: war 20 Food
     }
   },
   
@@ -200,7 +200,7 @@ const upgradeDefinitions = [
     },
     costScaling: 1.3,
     produces: {
-      population: 0.2
+      population: 0.25  // ERHOHT: war 0.2 (+25%)
     },
     unlocked: false,
     requires: {
@@ -216,6 +216,29 @@ const upgradeDefinitions = [
   // --- Gestein & Metall ---
   
   {
+    id: 'basic_drill',
+    name: 'Einfacher Bohrer',
+    icon: '🔩',
+    description: 'Kleiner Bohrer für Anfangsbergbau. Brücke zum Steinbruch.',
+    type: 'generator',
+    size: 1,
+    maxCount: -1,
+    baseCost: {
+      energy: 50,
+      population: 2
+    },
+    costScaling: 1.15,
+    produces: {
+      stone: 0.15  // Halb so viel wie Quarry
+    },
+    unlocked: false,
+    requires: {
+      resource: 'population',
+      amount: 2
+    }
+  },
+  
+  {
     id: 'quarry',
     name: 'Steinbruch',
     icon: '⛏️',
@@ -229,12 +252,39 @@ const upgradeDefinitions = [
     },
     costScaling: 1.15,
     produces: {
-      stone: 0.3
+      stone: 0.5  // ERHOHT: war 0.3 (+67%)
     },
     unlocked: false,
     requires: {
       resource: 'population',
-      amount: 5
+      amount: 4  // REDUZIERT: war 5 Population
+    }
+  },
+  
+  {
+    id: 'small_smelter',
+    name: 'Kleiner Schmelzofen',
+    icon: '🧾',
+    description: 'Kompakte Metallverarbeitung. Weniger effizient aber günstiger.',
+    type: 'generator',
+    size: 2,
+    maxCount: -1,
+    baseCost: {
+      energy: 120,
+      stone: 100,
+      population: 8
+    },
+    costScaling: 1.16,
+    produces: {
+      metal: 0.12  // Etwa 1/3 der Raffinerie
+    },
+    consumes: {
+      stone: 0.3
+    },
+    unlocked: false,
+    requires: {
+      resource: 'stone',
+      amount: 30
     }
   },
   
@@ -253,7 +303,7 @@ const upgradeDefinitions = [
     },
     costScaling: 1.18,
     produces: {
-      metal: 0.2
+      metal: 0.35  // ERHOHT: war 0.2 (+75%)
     },
     consumes: {
       stone: 0.5 // Verbraucht 0.5 Gestein pro Sekunde
@@ -276,18 +326,18 @@ const upgradeDefinitions = [
     size: 2,
     maxCount: -1,
     baseCost: {
-      energy: 300,
-      metal: 100,
-      population: 20
+      energy: 250,  // REDUZIERT: war 300 Energy
+      metal: 80,    // REDUZIERT: war 100 Metal
+      population: 15  // REDUZIERT: war 20 Population
     },
     costScaling: 1.2,
     produces: {
-      crystals: 0.1
+      crystals: 0.12  // ERHOHT: war 0.1 (+20%)
     },
     unlocked: false,
     requires: {
       resource: 'metal',
-      amount: 100
+      amount: 60  // REDUZIERT: war 100 Metal
     }
   },
   
@@ -369,12 +419,12 @@ const upgradeDefinitions = [
     },
     costScaling: 1.18,
     produces: {
-      research: 0.1
+      research: 0.15  // ERHOHT: war 0.1 (+50%)
     },
     unlocked: false,
     requires: {
       resource: 'population',
-      amount: 10
+      amount: 7  // REDUZIERT: war 10 Population
     }
   },
   
@@ -487,7 +537,7 @@ const upgradeDefinitions = [
     baseCost: {
       energy: 300,
       metal: 80,
-      population: 15
+      population: 12  // REDUZIERT: war 15 Population
     },
     effect: {
       target: 'hydroponic_farm',
@@ -496,6 +546,54 @@ const upgradeDefinitions = [
     unlocked: false,
     requires: {
       upgrade: 'hydroponic_farm',
+      count: 3
+    }
+  },
+  
+  {
+    id: 'mining_efficiency',
+    name: 'Bergbau-Optimierung',
+    icon: '⛏️',
+    description: 'Erhöht die Gesteinproduktion aller Steinbrüche um 75%.',
+    type: 'efficiency',
+    size: 0,
+    maxCount: 1,
+    baseCost: {
+      energy: 300,
+      metal: 50,
+      stone: 200
+    },
+    effect: {
+      target: 'quarry',
+      multiplier: 1.75
+    },
+    unlocked: false,
+    requires: {
+      upgrade: 'quarry',
+      count: 4
+    }
+  },
+  
+  {
+    id: 'refinery_efficiency',
+    name: 'Raffinations-Effizienz',
+    icon: '🏭',
+    description: 'Erhöht die Metallproduktion aller Raffinerien um 60%.',
+    type: 'efficiency',
+    size: 0,
+    maxCount: 1,
+    baseCost: {
+      energy: 500,
+      metal: 150,
+      crystals: 30
+    },
+    effect: {
+      target: 'metal_refinery',
+      multiplier: 1.6
+    },
+    unlocked: false,
+    requires: {
+      upgrade: 'metal_refinery',
       count: 3
     }
   },
@@ -530,7 +628,7 @@ const upgradeDefinitions = [
     size: 0,
     maxCount: 1,
     baseCost: {
-      energy: 200
+      energy: 150  // REDUZIERT: war 200 Energy
     },
     effect: {
       clickBonus: 2
@@ -551,8 +649,8 @@ const upgradeDefinitions = [
     size: 0,
     maxCount: 1,
     baseCost: {
-      energy: 1000,
-      crystals: 20
+      energy: 800,  // REDUZIERT: war 1000 Energy
+      crystals: 15  // REDUZIERT: war 20 Crystals
     },
     effect: {
       clickBonus: 5
@@ -571,7 +669,7 @@ const upgradeDefinitions = [
   {
     id: 'expand_colony_1',
     name: 'Kolonien-Erweiterung I',
-    icon: '🏗️',
+    icon: '🏟️',
     description: '+5 Bauplätze',
     type: 'space',
     size: 0,
@@ -588,7 +686,7 @@ const upgradeDefinitions = [
   {
     id: 'expand_colony_2',
     name: 'Kolonien-Erweiterung II',
-    icon: '🏗️',
+    icon: '🏟️',
     description: '+10 Bauplätze',
     type: 'space',
     size: 0,
@@ -610,7 +708,7 @@ const upgradeDefinitions = [
   {
     id: 'expand_colony_3',
     name: 'Kolonien-Erweiterung III',
-    icon: '🏗️',
+    icon: '🏟️',
     description: '+15 Bauplätze',
     type: 'space',
     size: 0,
@@ -633,7 +731,7 @@ const upgradeDefinitions = [
   {
     id: 'expand_colony_4',
     name: 'Kolonien-Erweiterung IV',
-    icon: '🏗️',
+    icon: '🏟️',
     description: '+20 Bauplätze - Eröffnet neue strategische Möglichkeiten',
     type: 'space',
     size: 0,
@@ -657,7 +755,7 @@ const upgradeDefinitions = [
   {
     id: 'expand_colony_5',
     name: 'Kolonien-Erweiterung V',
-    icon: '🏗️',
+    icon: '🏟️',
     description: '+25 Bauplätze - Die ultimative Mega-Kolonie!',
     type: 'space',
     size: 0,
