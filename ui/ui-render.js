@@ -1,6 +1,7 @@
 /**
  * ui-render.js
  * Alle Rendering- und Formatierungsfunktionen für Space Colonies
+ * 🎨 Enhanced with visual hierarchy and better feedback
  */
 
 import gameState from '../src/modules/game-state.js';
@@ -447,47 +448,88 @@ export function renderStatistics(game) {
   container.appendChild(prestigeSection);
 }
 
-// ========== Upgrade Card Creation ==========
+// ========== Upgrade Card Creation (🆕 ENHANCED) ==========
 
 function createUpgradeCard(game, def) {
   const card = document.createElement('div');
   card.className = 'card';
   
   const currentCount = game.getUpgradeCount(def.id);
+  const cost = calculateUpgradeCost(def, currentCount);
   
-  // Titel
+  // 🎯 Berechne Affordability Status
+  const affordability = getAffordabilityStatus(game, cost);
+  card.classList.add(affordability.cssClass);
+  
+  // 🏷️ Size Badge (nur bei Gebäuden mit size > 0)
+  if (def.size > 0) {
+    const sizeBadge = document.createElement('div');
+    sizeBadge.className = `size-badge size-${def.size}`;
+    sizeBadge.innerHTML = `📐 ${def.size}×${def.size}`;
+    card.appendChild(sizeBadge);
+  }
+  
+  // Titel mit Count Badge
+  const titleContainer = document.createElement('div');
+  titleContainer.style.display = 'flex';
+  titleContainer.style.alignItems = 'center';
+  titleContainer.style.gap = '6px';
+  
   const title = document.createElement('h3');
+  title.style.margin = '0';
   title.textContent = `${def.icon} ${def.name}`;
+  titleContainer.appendChild(title);
+  
+  // Count Badge
+  if (currentCount > 0) {
+    const countBadge = document.createElement('span');
+    countBadge.className = 'count-badge';
+    countBadge.textContent = `×${currentCount}`;
+    titleContainer.appendChild(countBadge);
+  }
+  
+  card.appendChild(titleContainer);
   
   // Beschreibung
   const desc = document.createElement('p');
   desc.textContent = def.description;
+  card.appendChild(desc);
   
-  // Kosten
-  const cost = calculateUpgradeCost(def, currentCount);
-  const costP = document.createElement('p');
-  const costParts = [];
+  // 💰 Kosten mit Color-Coding
+  const costContainer = document.createElement('div');
+  costContainer.className = 'cost-display';
+  
   for (const [resourceId, amount] of Object.entries(cost)) {
     const resource = game.resources[resourceId];
-    if (resource) {
-      costParts.push(`${formatAmount(amount)} ${resource.icon}`);
-    }
+    if (!resource) continue;
+    
+    const costItem = document.createElement('div');
+    costItem.className = 'cost-item';
+    
+    const canAfford = resource.amount >= amount;
+    costItem.classList.add(canAfford ? 'affordable' : 'not-affordable');
+    
+    costItem.textContent = `${formatAmount(amount)} ${resource.icon}`;
+    costContainer.appendChild(costItem);
   }
-  costP.textContent = `Kosten: ${costParts.join(', ')}`;
+  
+  card.appendChild(costContainer);
   
   // Owned/Platz-Info
   const info = document.createElement('p');
   info.className = 'muted';
   
   if (def.type === 'generator') {
-    info.textContent = `Stufe: ${currentCount} | Größe: ${def.size}`;
+    info.textContent = `Größe: ${def.size}×${def.size}`;
   } else if (def.maxCount !== -1) {
     info.textContent = `Stufe: ${currentCount} / ${def.maxCount}`;
   } else {
     info.textContent = `Stufe: ${currentCount}`;
   }
   
-  // Produktion anzeigen (bei Generatoren) - MIT ALLEN BONI
+  card.appendChild(info);
+  
+  // 📊 Produktion anzeigen (bei Generatoren) - MIT ALLEN BONI
   if (def.produces && currentCount > 0) {
     const prodP = document.createElement('p');
     prodP.className = 'production-info';
@@ -519,8 +561,8 @@ function createUpgradeCard(game, def) {
       prodParts.push(`+${formatRate(production)} ${resource.icon}/s`);
     }
     
-    prodP.textContent = `Produziert: ${prodParts.join(', ')}`;
-    desc.after(prodP);
+    prodP.innerHTML = `<strong>Produziert:</strong> ${prodParts.join(', ')}`;
+    card.appendChild(prodP);
   }
   
   // Button-Container für Kauf & Abreißen
@@ -536,16 +578,16 @@ function createUpgradeCard(game, def) {
   buyBtn.disabled = !canBuy;
   
   if (def.maxCount !== -1 && currentCount >= def.maxCount) {
-    buyBtn.textContent = 'Maximum erreicht';
+    buyBtn.textContent = '✅ Maximum';
     buyBtn.disabled = true;
   } else if (def.size > 0 && game.usedSpace + def.size > game.maxSpace) {
-    buyBtn.textContent = 'Kein Platz';
+    buyBtn.textContent = '❌ Kein Platz';
     buyBtn.disabled = true;
   } else {
-    buyBtn.textContent = canBuy ? 'Kaufen' : 'Nicht genug';
+    buyBtn.textContent = canBuy ? '🛒 Kaufen' : '💸 Zu teuer';
   }
   
-  // 🆕 BULK-BUY mit Shift+Klick
+  // Bulk-Buy mit Shift+Klick
   buyBtn.onclick = (event) => {
     const bulkAmount = event.shiftKey ? 10 : 1;
     
@@ -556,7 +598,7 @@ function createUpgradeCard(game, def) {
         if (game.buyUpgrade(def.id)) {
           bought++;
         } else {
-          break; // Nicht mehr genug Ressourcen oder Platz
+          break;
         }
       }
       
@@ -572,18 +614,17 @@ function createUpgradeCard(game, def) {
     }
   };
   
-  // 🆕 Tooltip für Bulk-Buy Hinweis
-  buyBtn.title = 'Kaufen (Shift+Klick für 10x)';
+  // Tooltip für Bulk-Buy Hinweis
+  buyBtn.title = 'Kaufen (⇧+Klick für 10×)';
   
   btnContainer.appendChild(buyBtn);
   
-  // Abreißen-Button (nur bei Gebäuden mit size > 0 und count > 0)
+  // 💥 Abreißen-Button (nur bei Gebäuden mit size > 0 und count > 0)
   if (def.size > 0 && currentCount > 0) {
     const demolishBtn = document.createElement('button');
     demolishBtn.className = 'demolish-btn';
     demolishBtn.textContent = '💥';
     demolishBtn.title = 'Abreißen (50% Rückerstattung)';
-    demolishBtn.style.cssText = 'width: 40px; padding: 8px; background: #d32f2f; border: none; border-radius: 4px; color: white; cursor: pointer; font-size: 16px;';
     
     demolishBtn.onclick = () => {
       // Berechne Refund für Anzeige
@@ -606,13 +647,10 @@ function createUpgradeCard(game, def) {
     btnContainer.appendChild(demolishBtn);
   }
   
-  // Fortschrittsbalken
-  const hasProgress = Object.entries(cost).some(([resId, amount]) => {
-    const resource = game.resources[resId];
-    return resource && resource.amount < amount;
-  });
+  card.appendChild(btnContainer);
   
-  if (hasProgress) {
+  // Fortschrittsbalken (nur wenn nicht vollständig bezahlbar)
+  if (!affordability.canAffordAll) {
     const mainCost = Object.entries(cost)[0];
     if (mainCost) {
       const [resId, amount] = mainCost;
@@ -630,47 +668,61 @@ function createUpgradeCard(game, def) {
     }
   }
   
-  card.appendChild(title);
-  card.appendChild(desc);
-  card.appendChild(costP);
-  card.appendChild(info);
-  card.appendChild(btnContainer);
-  
   return card;
+}
+
+// 🆕 Helper: Affordability Status berechnen
+function getAffordabilityStatus(game, cost) {
+  let affordableCount = 0;
+  let totalCount = 0;
+  
+  for (const [resourceId, amount] of Object.entries(cost)) {
+    const resource = game.resources[resourceId];
+    if (resource) {
+      totalCount++;
+      if (resource.amount >= amount) {
+        affordableCount++;
+      }
+    }
+  }
+  
+  const canAffordAll = affordableCount === totalCount;
+  const canAffordSome = affordableCount > 0 && !canAffordAll;
+  
+  return {
+    canAffordAll,
+    canAffordSome,
+    canAffordNone: affordableCount === 0,
+    cssClass: canAffordAll ? 'affordable' : (canAffordSome ? 'partially-affordable' : 'not-affordable')
+  };
 }
 
 // 🆕 Notification für Bulk-Buy
 function showBulkBuyNotification(def, amount) {
-  let notification = document.getElementById('notification');
+  let notification = document.getElementById('bulk-notification');
   
   if (!notification) {
     notification = document.createElement('div');
-    notification.id = 'notification';
-    notification.style.cssText = `
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: #4CAF50;
-      color: white;
-      padding: 12px 20px;
-      border-radius: 4px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-      z-index: 10000;
-      animation: slideIn 0.3s ease-out;
-    `;
+    notification.id = 'bulk-notification';
+    notification.className = 'notification notification-success';
     document.body.appendChild(notification);
   }
   
-  notification.textContent = `🚀 ${amount}x ${def.icon} ${def.name} gekauft!`;
-  notification.style.display = 'block';
-  notification.style.background = '#FF9800'; // Orange für Bulk-Buy
+  notification.innerHTML = `
+    <div class="notification-content">
+      <div class="notification-icon">🚀</div>
+      <div class="notification-text">
+        <strong>Bulk-Kauf</strong>
+        <p class="notification-message">${amount}× ${def.icon} ${def.name} gekauft!</p>
+      </div>
+    </div>
+  `;
+  
+  notification.classList.add('show');
   
   // Nach 2 Sekunden ausblenden
   setTimeout(() => {
-    notification.style.animation = 'slideOut 0.3s ease-out';
-    setTimeout(() => {
-      notification.style.display = 'none';
-    }, 300);
+    notification.classList.remove('show');
   }, 2000);
 }
 
@@ -680,6 +732,10 @@ function createResearchCard(game, def) {
   const card = document.createElement('div');
   card.className = 'card research-card';
   
+  const cost = def.cost;
+  const affordability = getAffordabilityStatus(game, cost);
+  card.classList.add(affordability.cssClass);
+  
   // Titel
   const title = document.createElement('h3');
   title.textContent = `${def.icon} ${def.name}`;
@@ -688,16 +744,23 @@ function createResearchCard(game, def) {
   const desc = document.createElement('p');
   desc.textContent = def.description;
   
-  // Kosten
-  const costP = document.createElement('p');
-  const costParts = [];
-  for (const [resourceId, amount] of Object.entries(def.cost)) {
+  // 💰 Kosten mit Color-Coding
+  const costContainer = document.createElement('div');
+  costContainer.className = 'cost-display';
+  
+  for (const [resourceId, amount] of Object.entries(cost)) {
     const resource = game.resources[resourceId];
-    if (resource) {
-      costParts.push(`${formatAmount(amount)} ${resource.icon}`);
-    }
+    if (!resource) continue;
+    
+    const costItem = document.createElement('div');
+    costItem.className = 'cost-item';
+    
+    const canAfford = resource.amount >= amount;
+    costItem.classList.add(canAfford ? 'affordable' : 'not-affordable');
+    
+    costItem.textContent = `${formatAmount(amount)} ${resource.icon}`;
+    costContainer.appendChild(costItem);
   }
-  costP.textContent = `Kosten: ${costParts.join(', ')}`;
   
   // Kauf-Button
   const btn = document.createElement('button');
@@ -705,7 +768,7 @@ function createResearchCard(game, def) {
   
   const canResearch = game.canResearch(def.id);
   btn.disabled = !canResearch;
-  btn.textContent = canResearch ? 'Erforschen' : 'Nicht genug';
+  btn.textContent = canResearch ? '🔬 Erforschen' : '💸 Zu teuer';
   
   btn.onclick = () => {
     if (game.performResearch(def.id)) {
@@ -715,7 +778,7 @@ function createResearchCard(game, def) {
   
   card.appendChild(title);
   card.appendChild(desc);
-  card.appendChild(costP);
+  card.appendChild(costContainer);
   card.appendChild(btn);
   
   return card;
@@ -843,10 +906,10 @@ function createPrestigeUpgradeCard(game, upg) {
   btn.disabled = !canBuy;
   
   if (upg.maxLevel !== -1 && upg.level >= upg.maxLevel) {
-    btn.textContent = 'Maximum erreicht';
+    btn.textContent = '✅ Maximum';
     btn.disabled = true;
   } else {
-    btn.textContent = canBuy ? 'Kaufen' : 'Nicht genug Punkte';
+    btn.textContent = canBuy ? '🛒 Kaufen' : '💸 Zu teuer';
   }
   
   btn.onclick = () => {
