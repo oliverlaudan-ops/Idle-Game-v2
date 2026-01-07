@@ -3,7 +3,7 @@
  * Alle Rendering- und Formatierungsfunktionen für Space Colonies
  * 🎨 Enhanced with visual hierarchy and better feedback
  * 🔧 QoL: Sorting, Filtering, Buy Max, Tooltips
- * 📊 Active Upgrades Summary View
+ * 📊 Active Upgrades Summary View with Smart Grouping
  */
 
 import gameState from '../src/modules/game-state.js';
@@ -178,14 +178,14 @@ export function renderUpgrades(game) {
     }
   }
   
-  // 📊 Aktive Upgrades (gekaufte Verbesserungen)
+  // 📊 Aktive Upgrades (gekaufte Verbesserungen) - GROUPED
   const activeUpgrades = [...efficiency, ...click, ...space].filter(def => {
     const count = game.getUpgradeCount(def.id);
     return count > 0;
   });
   
   if (activeUpgrades.length > 0) {
-    const activeSection = createActiveUpgradesSection(game, activeUpgrades);
+    const activeSection = createGroupedActiveUpgradesSection(game, activeUpgrades);
     game.upgradeGridEl.appendChild(activeSection);
   }
   
@@ -237,8 +237,8 @@ export function renderUpgrades(game) {
   }
 }
 
-// 📊 Create Active Upgrades Summary Section
-function createActiveUpgradesSection(game, activeUpgrades) {
+// 📊 Create GROUPED Active Upgrades Summary Section
+function createGroupedActiveUpgradesSection(game, activeUpgrades) {
   const section = document.createElement('div');
   section.style.cssText = 'margin-bottom: 24px; padding: 16px; background: linear-gradient(135deg, var(--bg-panel-soft) 0%, var(--bg-panel) 100%); border-radius: 12px; border: 2px solid var(--success);';
   
@@ -251,139 +251,173 @@ function createActiveUpgradesSection(game, activeUpgrades) {
   
   const title = document.createElement('h3');
   title.style.cssText = 'margin: 0; color: var(--success); font-size: 18px;';
-  title.textContent = `Aktive Verbesserungen (${activeUpgrades.length})`;
+  title.textContent = `Aktive Verbesserungen`;
   
   header.appendChild(icon);
   header.appendChild(title);
   section.appendChild(header);
   
-  // Grid für aktive Upgrades
+  // Group upgrades by base name
+  const grouped = groupUpgradesByBaseName(activeUpgrades);
+  
+  // Grid für gruppierte aktive Upgrades
   const grid = document.createElement('div');
   grid.style.cssText = 'display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;';
   
-  activeUpgrades.forEach(def => {
-    const card = createActiveUpgradeCard(game, def);
+  for (const group of grouped) {
+    const card = createGroupedActiveUpgradeCard(game, group);
     grid.appendChild(card);
-  });
+  }
   
   section.appendChild(grid);
   
   return section;
 }
 
-// 📊 Create Active Upgrade Card (compact summary)
-function createActiveUpgradeCard(game, def) {
+// 🔧 Group upgrades by base name (e.g., "Energie-Verstärker" or "Kolonien-Erweiterung")
+function groupUpgradesByBaseName(upgrades) {
+  const groups = {};
+  
+  upgrades.forEach(def => {
+    // Extract base name (remove " I", " II", " III", etc.)
+    const baseName = def.name.replace(/\s+(I{1,3}|IV|V|\d+)$/i, '').trim();
+    
+    if (!groups[baseName]) {
+      groups[baseName] = {
+        baseName,
+        upgrades: [],
+        icon: def.icon,
+        type: def.type
+      };
+    }
+    
+    groups[baseName].upgrades.push(def);
+  });
+  
+  // Convert to array and sort each group by name
+  return Object.values(groups).map(group => {
+    group.upgrades.sort((a, b) => a.name.localeCompare(b.name));
+    return group;
+  });
+}
+
+// 📊 Create GROUPED Active Upgrade Card
+function createGroupedActiveUpgradeCard(game, group) {
   const card = document.createElement('div');
   card.style.cssText = 'padding: 12px; background: var(--bg-panel); border-radius: 8px; border: 1px solid var(--border-soft);';
   
-  // Header with icon and name
+  // Header with icon and base name
   const header = document.createElement('div');
   header.style.cssText = 'display: flex; align-items: center; gap: 8px; margin-bottom: 8px;';
   
   const iconSpan = document.createElement('span');
   iconSpan.style.fontSize = '20px';
-  iconSpan.textContent = def.icon;
+  iconSpan.textContent = group.icon;
   
   const nameSpan = document.createElement('span');
   nameSpan.style.cssText = 'font-weight: 600; color: var(--text-main);';
-  nameSpan.textContent = def.name;
+  nameSpan.textContent = group.baseName;
   
-  const count = game.getUpgradeCount(def.id);
-  const levelBadge = document.createElement('span');
-  levelBadge.className = 'count-badge';
-  levelBadge.style.cssText = 'margin-left: auto; font-size: 12px;';
-  levelBadge.textContent = `Level ${count}`;
+  // Count badge (total upgrades in group)
+  const countBadge = document.createElement('span');
+  countBadge.className = 'count-badge';
+  countBadge.style.cssText = 'margin-left: auto; font-size: 12px;';
+  countBadge.textContent = `${group.upgrades.length} Stufe${group.upgrades.length > 1 ? 'n' : ''}`;
   
   header.appendChild(iconSpan);
   header.appendChild(nameSpan);
-  header.appendChild(levelBadge);
+  header.appendChild(countBadge);
   card.appendChild(header);
   
-  // Effect summary
-  const effect = getUpgradeEffectSummary(game, def);
-  if (effect) {
+  // Calculate TOTAL effect from all upgrades in group
+  const totalEffect = calculateGroupedEffect(game, group);
+  
+  if (totalEffect) {
     const effectDiv = document.createElement('div');
     effectDiv.style.cssText = 'padding: 8px; background: rgba(52, 211, 153, 0.1); border-left: 3px solid var(--success); border-radius: 4px; font-size: 13px; color: var(--text-muted);';
-    effectDiv.innerHTML = effect;
+    effectDiv.innerHTML = totalEffect;
     card.appendChild(effectDiv);
   }
   
-  // Show "Upgrade" button if not maxed
-  if (def.maxCount === -1 || count < def.maxCount) {
-    const upgradeBtn = document.createElement('button');
-    upgradeBtn.style.cssText = 'margin-top: 8px; width: 100%; padding: 6px; font-size: 12px;';
-    
-    const nextCost = calculateUpgradeCost(def, count);
-    const canAfford = game.canBuyUpgrade(def.id);
-    
-    upgradeBtn.disabled = !canAfford;
-    upgradeBtn.textContent = canAfford ? '⬆️ Weiter upgraden' : '💸 Zu teuer';
-    
-    upgradeBtn.onclick = () => {
-      if (game.buyUpgrade(def.id)) {
-        renderAll(game);
-      }
-    };
-    
-    // Show cost inline
-    const costSpan = document.createElement('div');
-    costSpan.style.cssText = 'font-size: 11px; margin-top: 4px; color: var(--text-muted);';
-    const costParts = [];
-    for (const [resId, amount] of Object.entries(nextCost)) {
-      const resource = game.resources[resId];
-      if (resource) {
-        costParts.push(`${formatAmount(amount)} ${resource.icon}`);
-      }
-    }
-    costSpan.textContent = `Kosten: ${costParts.join(', ')}`;
-    
-    card.appendChild(upgradeBtn);
-    card.appendChild(costSpan);
-  } else {
-    // Maxed badge
-    const maxBadge = document.createElement('div');
-    maxBadge.style.cssText = 'margin-top: 8px; padding: 6px; background: rgba(251, 191, 36, 0.2); border-radius: 4px; text-align: center; font-size: 12px; color: var(--warning); font-weight: 600;';
-    maxBadge.textContent = '⭐ Maximum erreicht';
-    card.appendChild(maxBadge);
-  }
+  // Show individual upgrade levels
+  const detailsDiv = document.createElement('div');
+  detailsDiv.style.cssText = 'margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border-soft); font-size: 12px; color: var(--text-muted);';
+  
+  const levelsList = group.upgrades.map(def => {
+    const count = game.getUpgradeCount(def.id);
+    const maxed = def.maxCount !== -1 && count >= def.maxCount;
+    return `<div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+      <span>${def.name}</span>
+      <span style="color: ${maxed ? 'var(--warning)' : 'var(--success)'};">Level ${count}${maxed ? ' ⭐' : ''}</span>
+    </div>`;
+  }).join('');
+  
+  detailsDiv.innerHTML = levelsList;
+  card.appendChild(detailsDiv);
   
   return card;
 }
 
-// 📊 Get Upgrade Effect Summary
-function getUpgradeEffectSummary(game, def) {
-  const count = game.getUpgradeCount(def.id);
-  
-  if (def.type === 'efficiency') {
-    // Efficiency upgrade
-    const mult = game.getEfficiencyMultiplier(def.id, def.affects);
-    const bonus = ((mult - 1) * 100).toFixed(0);
+// 📊 Calculate total effect for a group
+function calculateGroupedEffect(game, group) {
+  if (group.type === 'efficiency') {
+    // Sum up all efficiency multipliers
+    let totalMultiplier = 1;
+    let targetName = '';
     
-    const resource = game.resources[def.affects];
-    const resourceName = resource ? resource.icon + ' ' + resource.name : def.affects;
+    group.upgrades.forEach(def => {
+      const count = game.getUpgradeCount(def.id);
+      if (count > 0 && def.effect?.multiplier) {
+        totalMultiplier *= def.effect.multiplier;
+        
+        // Get target name
+        if (def.effect.target) {
+          const targetDef = game.getUpgradeDefinition(def.effect.target);
+          if (targetDef) {
+            targetName = `${targetDef.icon} ${targetDef.name}`;
+          }
+        }
+      }
+    });
     
-    return `<strong>+${bonus}%</strong> ${resourceName} Produktion`;
+    const bonus = ((totalMultiplier - 1) * 100).toFixed(0);
+    return `<strong>+${bonus}%</strong> ${targetName} Produktion`;
   }
   
-  if (def.type === 'click') {
-    // Click upgrade
+  if (group.type === 'click') {
+    // Sum up all click bonuses
+    let totalBonus = 0;
+    
+    group.upgrades.forEach(def => {
+      const count = game.getUpgradeCount(def.id);
+      if (count > 0 && def.effect?.clickBonus) {
+        totalBonus += def.effect.clickBonus;
+      }
+    });
+    
     const resource = game.resources.energy;
     if (resource) {
-      const baseClick = 1; // Basis-Click-Wert
-      const totalClick = resource.clickValue;
-      const bonus = totalClick - baseClick;
-      
-      return `<strong>+${formatRate(bonus)}</strong> Energie pro Klick`;
+      const baseClick = 1;
+      const totalClick = baseClick + totalBonus;
+      return `<strong>+${totalBonus}</strong> Energie pro Klick (Total: ${totalClick}/Klick)`;
     }
   }
   
-  if (def.type === 'space') {
-    // Space upgrade
-    const addedSpace = def.effect?.addSpace || 0;
-    return `<strong>+${addedSpace}</strong> Bauplätze`;
+  if (group.type === 'space') {
+    // Sum up all space increases
+    let totalSpace = 0;
+    
+    group.upgrades.forEach(def => {
+      const count = game.getUpgradeCount(def.id);
+      if (count > 0 && def.effect?.spaceIncrease) {
+        totalSpace += def.effect.spaceIncrease;
+      }
+    });
+    
+    return `<strong>+${totalSpace}</strong> Bauplätze`;
   }
   
-  return def.description;
+  return null;
 }
 
 // 🔧 Create Sort/Filter Controls
