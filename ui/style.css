@@ -2,6 +2,7 @@
    Space Colonies Idle Game - Complete Stylesheet
    Dark/Light Theme Support mit modernem Design
    Layout: Option 1 - Sticky Top Action Button
+   FIXED: Badge overlap issue
    ================================================ */
 
 /* Globale Variablen - Dark Theme (Standard) */
@@ -317,7 +318,7 @@ button:disabled {
   border-color: var(--accent-soft);
 }
 
-/* 🎯 Size Indicator Badge */
+/* 🎯 Size Indicator Badge - FIXED: Positioned to avoid overlap */
 .card .size-badge {
   position: absolute;
   top: 8px;
@@ -334,6 +335,7 @@ button:disabled {
   display: flex;
   align-items: center;
   gap: 4px;
+  z-index: 2;
 }
 
 .card .size-badge.size-1 { border-color: #4ade80; color: #4ade80; background: rgba(74, 222, 128, 0.1); }
@@ -360,7 +362,10 @@ button:disabled {
   margin: 0 0 6px;
   font-size: 15px;
   color: var(--text-main);
-  padding-right: 60px; /* Space for size badge */
+  padding-right: 80px; /* FIXED: More space for both badges */
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .card p {
@@ -437,9 +442,10 @@ button:disabled {
   background: var(--bg-panel-soft);
 }
 
-/* 🔄 Building Count Badge */
+/* 🔄 Building Count Badge - FIXED: Inline in title to avoid overlap */
 .card .count-badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
   background: var(--info);
   color: white;
   padding: 2px 8px;
@@ -447,6 +453,7 @@ button:disabled {
   font-size: 11px;
   font-weight: 700;
   margin-left: 6px;
+  flex-shrink: 0;
 }
 
 /* Buy Button in Cards */

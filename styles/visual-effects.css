@@ -87,6 +87,38 @@ button:active::after {
   height: 300px;
 }
 
+/* ⚡ Enhanced Action Button Click Animation */
+.action-btn {
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.action-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.4) 0%, transparent 70%);
+  opacity: 0;
+  transform: scale(0);
+  transition: all 0.4s ease-out;
+}
+
+.action-btn:active::before {
+  opacity: 1;
+  transform: scale(1.5);
+  transition: all 0.1s ease-out;
+}
+
+.action-btn:active {
+  transform: scale(0.96);
+  box-shadow: 0 0 15px var(--accent-glow), inset 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.action-btn:not(:disabled):hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 0 35px var(--accent-glow), 0 8px 24px rgba(56, 214, 255, 0.3);
+}
+
 /* ========== Progress Bar Animations ========== */
 
 .progress-bar {
