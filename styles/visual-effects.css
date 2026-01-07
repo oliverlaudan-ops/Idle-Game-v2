@@ -1,0 +1,353 @@
+/* visual-effects.css
+ * ✨ Visual Polish: Animations, Transitions, Effects
+ */
+
+/* ========== Smooth Transitions ========== */
+
+.card {
+  transition: all 0.2s ease-out;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* ========== Affordability States ========== */
+
+.card.affordable {
+  border-color: var(--success);
+  box-shadow: 0 0 0 1px var(--success);
+}
+
+.card.affordable:hover {
+  box-shadow: 0 0 0 2px var(--success), 0 4px 12px rgba(52, 211, 153, 0.3);
+}
+
+.card.partially-affordable {
+  border-color: var(--warning);
+  box-shadow: 0 0 0 1px var(--warning);
+}
+
+.card.not-affordable {
+  opacity: 0.7;
+}
+
+/* ✨ Newly Affordable Pulse Effect */
+.card.newly-affordable {
+  animation: affordablePulse 1s ease-out;
+}
+
+@keyframes affordablePulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(52, 211, 153, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(52, 211, 153, 0);
+  }
+}
+
+/* ========== Button Effects ========== */
+
+button {
+  transition: all 0.15s ease-out;
+  position: relative;
+  overflow: hidden;
+}
+
+button:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+button:not(:disabled):active {
+  transform: translateY(0);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Ripple Effect */
+button::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+button:active::after {
+  width: 300px;
+  height: 300px;
+}
+
+/* ========== Progress Bar Animations ========== */
+
+.progress-bar {
+  background: rgba(0, 0, 0, 0.1);
+  height: 4px;
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.progress {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--success));
+  transition: width 0.3s ease-out;
+  position: relative;
+}
+
+/* Animated Progress Shimmer */
+.progress::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* ========== Stats Bar Pills ========== */
+
+.stat-pill {
+  transition: all 0.2s ease-out;
+}
+
+.stat-pill:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Pulsing Effect for resources gaining fast */
+.stat-pill.fast-gain {
+  animation: fastGainPulse 0.5s ease-out;
+}
+
+@keyframes fastGainPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+/* ========== Cost Display ========== */
+
+.cost-item {
+  transition: all 0.2s ease-out;
+}
+
+.cost-item.affordable {
+  color: var(--success);
+  font-weight: 600;
+}
+
+.cost-item.not-affordable {
+  color: var(--error);
+  opacity: 0.7;
+}
+
+/* ========== Count Badge ========== */
+
+.count-badge {
+  animation: countBadgeAppear 0.3s ease-out;
+}
+
+@keyframes countBadgeAppear {
+  from {
+    transform: scale(0);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* ========== Size Badge ========== */
+
+.size-badge {
+  animation: sizeBadgeAppear 0.3s ease-out;
+}
+
+@keyframes sizeBadgeAppear {
+  from {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* ========== Tab Transitions ========== */
+
+.tab-btn {
+  transition: all 0.2s ease-out;
+  position: relative;
+}
+
+.tab-btn::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background: var(--accent);
+  transform: translateX(-50%);
+  transition: width 0.3s ease-out;
+}
+
+.tab-btn.active::after {
+  width: 80%;
+}
+
+/* ========== Achievement Cards ========== */
+
+.achievement-card {
+  transition: all 0.3s ease-out;
+}
+
+.achievement-card.unlocked {
+  animation: achievementUnlock 0.5s ease-out;
+}
+
+@keyframes achievementUnlock {
+  0% {
+    transform: scale(0.8) rotateY(90deg);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.1) rotateY(0deg);
+  }
+  100% {
+    transform: scale(1) rotateY(0deg);
+    opacity: 1;
+  }
+}
+
+.achievement-card.locked {
+  filter: grayscale(0.8);
+  opacity: 0.5;
+}
+
+.achievement-card.locked:hover {
+  filter: grayscale(0.5);
+  opacity: 0.7;
+}
+
+/* ========== Prestige Glow ========== */
+
+.prestige-btn:not(:disabled) {
+  animation: prestigeGlow 2s infinite;
+}
+
+@keyframes prestigeGlow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(251, 191, 36, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(251, 191, 36, 0.8);
+  }
+}
+
+/* ========== Loading Spinner ========== */
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 20px auto;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ========== Notification Animations ========== */
+
+.notification {
+  animation: notificationSlide 0.4s ease-out;
+}
+
+@keyframes notificationSlide {
+  from {
+    transform: translateY(-100px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* ========== Smooth Scroll ========== */
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* ========== Focus Styles ========== */
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ========== Demolish Button Hover ========== */
+
+.demolish-btn:hover {
+  background: #dc2626 !important;
+  transform: scale(1.05) rotate(-2deg);
+}
+
+/* ========== Buy Max Button ========== */
+
+.buy-btn:hover {
+  background: linear-gradient(135deg, var(--accent) 0%, #3b82f6 100%);
+}
+
+/* ========== Reduce Motion for Accessibility ========== */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

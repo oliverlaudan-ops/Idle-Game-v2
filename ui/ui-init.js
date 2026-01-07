@@ -1,6 +1,7 @@
 /**
  * ui-init.js
  * UI-Initialisierung, Event-Listener und DOM-Setup
+ * ⚡ Enhanced with Performance Optimizations
  */
 
 // Modul Import
@@ -12,6 +13,18 @@ import {
   renderAchievements,
   renderStatistics
 } from './ui-render.js';
+
+import {
+  scheduleRender,
+  needsUpdate,
+  updateStatsBarOnly,
+  updateAffordability,
+  applyAffordabilityChanges,
+  invalidateCache,
+  createOptimizedRenderLoop,
+  measureRender,
+  getPerformanceMetrics
+} from './ui-performance.js';
 
 import { showAchievementNotification } from '../src/modules/notification-system.js';
 import gameState from '../src/modules/game-state.js';
@@ -35,6 +48,11 @@ export function setupDOM(game) {
   setupAutosave(game);
 
   setupSaveButtons(game);
+  
+  // 🆕 Performance Debug (nur für Entwicklung)
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    setupPerformanceDebug();
+  }
 }
 
 // ========= Utility-Buttons ======
@@ -62,6 +80,7 @@ function setupSaveButtons(game) {
       try {
         gameState.import(saveField.value.trim());
         game.syncFromState();
+        invalidateCache(); // Cache invalidieren nach Import
         renderAll(game);
         showNotification('Spielstand importiert!');
       } catch (e) {
@@ -77,11 +96,10 @@ function setupSaveButtons(game) {
         return;
       }
       
-      console.log('🔴 ========== RESET GESTARTET ==========');
+      console.log('🔴 ========== RESET GESTARTET ==========')
       console.log('Schritt 1: Setze Reset-Flag...');
       
       // WICHTIG: Flag setzen BEVOR wir localStorage löschen
-      // sessionStorage überlebt den Reload aber nicht das Schließen des Tabs
       sessionStorage.setItem('gameResetInProgress', 'true');
       console.log('✅ Reset-Flag gesetzt');
       
@@ -94,7 +112,7 @@ function setupSaveButtons(game) {
       console.log('✅ localStorage gelöscht');
       console.log('🔍 Verifikation:', localStorage.getItem('gameState'));
       
-      console.log('🟥 ========== RESET ABGESCHLOSSEN ==========');
+      console.log('🟥 ========== RESET ABGESCHLOSSEN ==========')
       console.log('🔄 Lade Seite neu SOFORT...');
       
       // Sofort neu laden ohne Verzögerung
@@ -130,7 +148,6 @@ function setupTabs(game) {
       if (statisticsContainer) {
         if (target === 'statistics') {
           statisticsContainer.style.display = 'block';
-          // Render statistics when tab becomes active
           renderStatistics(game);
         } else {
           statisticsContainer.style.display = 'none';
@@ -156,6 +173,9 @@ function setupTabs(game) {
           prestigeContainer.style.display = 'none';
         }
       }
+      
+      // ⚡ Cache invalidieren bei Tab-Wechsel
+      invalidateCache();
     });
   });
   
@@ -218,23 +238,19 @@ function setupAutosave(game) {
   }, 30000);
 }
 
-// ========== Game Loop Callback ==========
+// ========== Game Loop Callback (⚡ OPTIMIZED) ==========
 
 export function setupGameLoop(game) {
+  // ⚡ Optimierter Render Loop
+  const optimizedRenderLoop = createOptimizedRenderLoop(game, renderAll);
+  
   // Callback für Tick-Updates setzen
-  game.onTick = () => {
-    renderStatsBar(game);
-    renderActions(game); // Action-Buttons auch bei jedem Tick updaten
-    
-    // Upgrades nur rendern wenn Tab aktiv ist (Performance)
-    const upgradeGrid = document.getElementById('upgradeGrid');
-    if (upgradeGrid && upgradeGrid.style.display !== 'none') {
-      renderUpgrades(game);
-    }
-  };
+  game.onTick = optimizedRenderLoop;
   
   // Game Loop starten
   game.startGameLoop();
+  
+  console.log('⚡ Optimierter Game Loop gestartet');
 }
 
 // ========== Keyboard Shortcuts ==========
@@ -259,6 +275,7 @@ export function setupKeyboardShortcuts(game) {
     // Strg+R: Vollständiges Re-Render
     if (e.ctrlKey && e.key === 'r') {
       e.preventDefault();
+      invalidateCache();
       renderAll(game);
       showNotification('UI aktualisiert!');
     }
@@ -267,8 +284,31 @@ export function setupKeyboardShortcuts(game) {
     if (e.code === 'Space' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
       e.preventDefault();
       game.handleClick('energy');
-      renderStatsBar(game);
-      renderActions(game);
+      updateStatsBarOnly(game);
+    }
+  });
+}
+
+// ========== 🆕 Performance Debug ==========
+
+function setupPerformanceDebug() {
+  // Performance-Info alle 10 Sekunden loggen
+  setInterval(() => {
+    const metrics = getPerformanceMetrics();
+    console.log('📊 Performance:', {
+      renders: metrics.renderCount,
+      avgTime: `${metrics.averageRenderTime.toFixed(2)}ms`,
+      lastRender: `${metrics.lastRenderDuration.toFixed(2)}ms`
+    });
+  }, 10000);
+  
+  // Keyboard: Strg+Shift+P für Performance-Info
+  document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.shiftKey && e.key === 'P') {
+      e.preventDefault();
+      const metrics = getPerformanceMetrics();
+      console.table(metrics);
+      showNotification(`Performance: ${metrics.renderCount} renders, ${metrics.averageRenderTime.toFixed(2)}ms avg`);
     }
   });
 }
@@ -333,15 +373,16 @@ export function initializeGame(game) {
   game.onAchievementUnlock = (achievement) => {
     showAchievementNotification(achievement);
     renderAchievements(game);
-    renderAll(game);
+    scheduleRender(game, renderAll, true); // Force render
   };
   
   // 5. DOM einrichten
   setupDOM(game);
   console.log('✅ DOM eingerichtet');
   
-  // 6. Initial rendern
-  renderAll(game);
+  // 6. Initial rendern (mit Performance-Messung)
+  const measuredRenderAll = measureRender(renderAll);
+  measuredRenderAll(game);
   renderAchievements(game);
   console.log('✅ UI gerendert');
   
