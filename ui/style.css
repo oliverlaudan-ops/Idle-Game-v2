@@ -1,6 +1,7 @@
 /* ================================================
    Space Colonies Idle Game - Complete Stylesheet
    Dark/Light Theme Support mit modernem Design
+   Layout: Option 1 - Sticky Top Action Button
    ================================================ */
 
 /* Globale Variablen - Dark Theme (Standard) */
@@ -64,17 +65,11 @@ body {
     linear-gradient(135deg, #f5f7fa 0%, #ffffff 40%, #f8f9fb 100%);
 }
 
-/* Hauptlayout */
+/* Hauptlayout - OPTION 1: Keine Spalten mehr, alles vertikal */
 #app {
   max-width: 1400px;
   margin: 0 auto;
   padding: 16px;
-}
-
-.layout {
-  display: grid;
-  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
-  gap: 16px;
 }
 
 /* ================================================
@@ -163,39 +158,46 @@ body {
 }
 
 /* ================================================
-   Actions Spalte (Links)
+   Actions - OPTION 1: Sticky Top, horizontal layout
    ================================================ */
 
 .actions {
   position: sticky;
-  align-self: flex-start;
-  top: 70px;
+  top: 80px; /* Below stats bar */
+  z-index: 90;
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 10px;
-  background: var(--bg-panel);
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px;
+  margin-bottom: 12px;
+  background: linear-gradient(135deg, var(--bg-panel), var(--bg-panel-soft));
   border-radius: 10px;
   border: 1px solid var(--border-soft);
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
 }
 
 .action-btn {
-  padding: 12px;
-  font-size: 14px;
+  flex: 1;
+  min-width: 200px;
+  padding: 14px 20px;
+  font-size: 16px;
   font-weight: 600;
-  background: linear-gradient(135deg, var(--bg-card), var(--bg-panel-soft));
-  border: 1px solid var(--accent-soft);
-  box-shadow: 0 0 12px var(--accent-soft);
+  background: linear-gradient(135deg, var(--accent), var(--accent-glow));
+  border: 2px solid var(--accent-soft);
+  box-shadow: 0 0 20px var(--accent-soft);
+  color: var(--bg-main);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .action-btn:hover {
-  background: linear-gradient(135deg, var(--bg-panel-soft), var(--bg-card));
-  box-shadow: 0 0 20px var(--accent-glow);
+  background: linear-gradient(135deg, var(--accent-glow), var(--accent));
+  box-shadow: 0 0 30px var(--accent-glow);
+  transform: translateY(-2px);
 }
 
 .action-btn:active {
-  transform: scale(0.98);
+  transform: translateY(0);
 }
 
 /* ================================================
@@ -232,10 +234,11 @@ button:disabled {
 }
 
 /* ================================================
-   Upgrades Panel & Tabs
+   Upgrades Panel - OPTION 1: Full width
    ================================================ */
 
 .upgrades-panel {
+  width: 100%;
   padding: 10px;
   background: var(--bg-panel);
   border-radius: 10px;
@@ -1114,23 +1117,16 @@ kbd {
 }
 
 /* ================================================
-   Responsive Design
+   Responsive Design - OPTION 1: Simplified
    ================================================ */
 
 @media (max-width: 900px) {
-  .layout {
-    grid-template-columns: 1fr;
-  }
-  
   .actions {
-    position: static;
-    flex-direction: row;
-    flex-wrap: wrap;
+    flex-direction: column;
   }
   
   .action-btn {
-    flex: 1;
-    min-width: 150px;
+    width: 100%;
   }
   
   .upgrade-col {

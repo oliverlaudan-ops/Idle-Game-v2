@@ -22,40 +22,38 @@
       </button>
     </header>
 
-    <main class="layout">
-      <!-- Linke Spalte: Aktionen -->
-      <section class="actions" id="actions">
-        <!-- Buttons zum Sammeln / Aktionen, wird von ui-render.js gefüllt -->
-      </section>
+    <!-- OPTION 1: Action Button sticky unter Stats Bar -->
+    <section class="actions" id="actions">
+      <!-- Buttons zum Sammeln / Aktionen, wird von ui-render.js gefüllt -->
+    </section>
 
-      <!-- Rechte Spalte: Tabs + Grids -->
-      <section class="upgrades-panel">
-        <div class="tabs">
-          <button class="tab-btn active" data-tab="upgrades" title="Hotkey: 1">🏭 Upgrades</button>
-          <button class="tab-btn" data-tab="research" title="Hotkey: 2">🔬 Forschung</button>
-          <button class="tab-btn" data-tab="statistics" title="Hotkey: 3">📊 Statistiken</button>
-          <button class="tab-btn" data-tab="achievements" title="Hotkey: 4">🏆 Erfolge</button>
-          <button class="tab-btn" data-tab="prestige" title="Hotkey: 5">⭐ Prestige</button>
-        </div>
+    <!-- OPTION 1: Upgrades Panel bekommt volle Breite -->
+    <section class="upgrades-panel">
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="upgrades" title="Hotkey: 1">🏭 Upgrades</button>
+        <button class="tab-btn" data-tab="research" title="Hotkey: 2">🔬 Forschung</button>
+        <button class="tab-btn" data-tab="statistics" title="Hotkey: 3">📊 Statistiken</button>
+        <button class="tab-btn" data-tab="achievements" title="Hotkey: 4">🏆 Erfolge</button>
+        <button class="tab-btn" data-tab="prestige" title="Hotkey: 5">⭐ Prestige</button>
+      </div>
 
-        <div class="tab-content">
-          <!-- Normale Upgrades -->
-          <div class="upgrade-grid" id="upgradeGrid" data-tab="upgrades"></div>
+      <div class="tab-content">
+        <!-- Normale Upgrades -->
+        <div class="upgrade-grid" id="upgradeGrid" data-tab="upgrades"></div>
 
-          <!-- Forschungs-Upgrades -->
-          <div class="upgrade-grid" id="researchGrid" data-tab="research" style="display:none;"></div>
+        <!-- Forschungs-Upgrades -->
+        <div class="upgrade-grid" id="researchGrid" data-tab="research" style="display:none;"></div>
 
-          <!-- Statistiken -->
-          <div id="statisticsContainer" data-tab="statistics" style="display:none;"></div>
+        <!-- Statistiken -->
+        <div id="statisticsContainer" data-tab="statistics" style="display:none;"></div>
 
-          <!-- Achievements -->
-          <div id="achievementsContainer" data-tab="achievements" style="display:none;"></div>
-          
-          <!-- Prestige -->
-          <div id="prestigeContainer" data-tab="prestige" style="display:none;"></div>
-        </div>
-      </section>
-    </main>
+        <!-- Achievements -->
+        <div id="achievementsContainer" data-tab="achievements" style="display:none;"></div>
+        
+        <!-- Prestige -->
+        <div id="prestigeContainer" data-tab="prestige" style="display:none;"></div>
+      </div>
+    </section>
 
     <!-- Hotkey-Hilfe (wird initial versteckt) -->
     <div id="hotkeyHelp" class="hotkey-help" style="display:none;">
