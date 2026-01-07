@@ -3,6 +3,7 @@
  * Alle Rendering- und Formatierungsfunktionen für Space Colonies
  * 🎨 Enhanced with visual hierarchy and better feedback
  * 🔧 QoL: Sorting, Filtering, Buy Max, Tooltips
+ * 📊 Active Upgrades Summary View
  */
 
 import gameState from '../src/modules/game-state.js';
@@ -177,6 +178,17 @@ export function renderUpgrades(game) {
     }
   }
   
+  // 📊 Aktive Upgrades (gekaufte Verbesserungen)
+  const activeUpgrades = [...efficiency, ...click, ...space].filter(def => {
+    const count = game.getUpgradeCount(def.id);
+    return count > 0;
+  });
+  
+  if (activeUpgrades.length > 0) {
+    const activeSection = createActiveUpgradesSection(game, activeUpgrades);
+    game.upgradeGridEl.appendChild(activeSection);
+  }
+  
   // 🔧 Apply Filtering
   generators = applyFilter(game, generators);
   
@@ -201,24 +213,177 @@ export function renderUpgrades(game) {
     game.upgradeGridEl.appendChild(col);
   }
   
-  // Spalte für Upgrades (Effizienz, Click, Platz)
-  const upgradesList = [...efficiency, ...click, ...space];
-  if (upgradesList.length > 0) {
+  // Spalte für Upgrades (nur NICHT gekaufte)
+  const availableUpgrades = [...efficiency, ...click, ...space].filter(def => {
+    const count = game.getUpgradeCount(def.id);
+    return count === 0 || (def.maxCount !== -1 && count < def.maxCount);
+  });
+  
+  if (availableUpgrades.length > 0) {
     const col = document.createElement('div');
     col.className = 'upgrade-col';
     col.style.width = '100%';
     col.style.maxWidth = '100%';
     
     const header = document.createElement('h4');
-    header.textContent = '⬆️ Verbesserungen';
+    header.textContent = '⬆️ Verfügbare Verbesserungen';
     col.appendChild(header);
     
-    upgradesList.forEach(def => {
+    availableUpgrades.forEach(def => {
       col.appendChild(createUpgradeCard(game, def));
     });
     
     game.upgradeGridEl.appendChild(col);
   }
+}
+
+// 📊 Create Active Upgrades Summary Section
+function createActiveUpgradesSection(game, activeUpgrades) {
+  const section = document.createElement('div');
+  section.style.cssText = 'margin-bottom: 24px; padding: 16px; background: linear-gradient(135deg, var(--bg-panel-soft) 0%, var(--bg-panel) 100%); border-radius: 12px; border: 2px solid var(--success);';
+  
+  const header = document.createElement('div');
+  header.style.cssText = 'display: flex; align-items: center; gap: 12px; margin-bottom: 16px;';
+  
+  const icon = document.createElement('div');
+  icon.style.cssText = 'font-size: 24px;';
+  icon.textContent = '✅';
+  
+  const title = document.createElement('h3');
+  title.style.cssText = 'margin: 0; color: var(--success); font-size: 18px;';
+  title.textContent = `Aktive Verbesserungen (${activeUpgrades.length})`;
+  
+  header.appendChild(icon);
+  header.appendChild(title);
+  section.appendChild(header);
+  
+  // Grid für aktive Upgrades
+  const grid = document.createElement('div');
+  grid.style.cssText = 'display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;';
+  
+  activeUpgrades.forEach(def => {
+    const card = createActiveUpgradeCard(game, def);
+    grid.appendChild(card);
+  });
+  
+  section.appendChild(grid);
+  
+  return section;
+}
+
+// 📊 Create Active Upgrade Card (compact summary)
+function createActiveUpgradeCard(game, def) {
+  const card = document.createElement('div');
+  card.style.cssText = 'padding: 12px; background: var(--bg-panel); border-radius: 8px; border: 1px solid var(--border-soft);';
+  
+  // Header with icon and name
+  const header = document.createElement('div');
+  header.style.cssText = 'display: flex; align-items: center; gap: 8px; margin-bottom: 8px;';
+  
+  const iconSpan = document.createElement('span');
+  iconSpan.style.fontSize = '20px';
+  iconSpan.textContent = def.icon;
+  
+  const nameSpan = document.createElement('span');
+  nameSpan.style.cssText = 'font-weight: 600; color: var(--text-main);';
+  nameSpan.textContent = def.name;
+  
+  const count = game.getUpgradeCount(def.id);
+  const levelBadge = document.createElement('span');
+  levelBadge.className = 'count-badge';
+  levelBadge.style.cssText = 'margin-left: auto; font-size: 12px;';
+  levelBadge.textContent = `Level ${count}`;
+  
+  header.appendChild(iconSpan);
+  header.appendChild(nameSpan);
+  header.appendChild(levelBadge);
+  card.appendChild(header);
+  
+  // Effect summary
+  const effect = getUpgradeEffectSummary(game, def);
+  if (effect) {
+    const effectDiv = document.createElement('div');
+    effectDiv.style.cssText = 'padding: 8px; background: rgba(52, 211, 153, 0.1); border-left: 3px solid var(--success); border-radius: 4px; font-size: 13px; color: var(--text-muted);';
+    effectDiv.innerHTML = effect;
+    card.appendChild(effectDiv);
+  }
+  
+  // Show "Upgrade" button if not maxed
+  if (def.maxCount === -1 || count < def.maxCount) {
+    const upgradeBtn = document.createElement('button');
+    upgradeBtn.style.cssText = 'margin-top: 8px; width: 100%; padding: 6px; font-size: 12px;';
+    
+    const nextCost = calculateUpgradeCost(def, count);
+    const canAfford = game.canBuyUpgrade(def.id);
+    
+    upgradeBtn.disabled = !canAfford;
+    upgradeBtn.textContent = canAfford ? '⬆️ Weiter upgraden' : '💸 Zu teuer';
+    
+    upgradeBtn.onclick = () => {
+      if (game.buyUpgrade(def.id)) {
+        renderAll(game);
+      }
+    };
+    
+    // Show cost inline
+    const costSpan = document.createElement('div');
+    costSpan.style.cssText = 'font-size: 11px; margin-top: 4px; color: var(--text-muted);';
+    const costParts = [];
+    for (const [resId, amount] of Object.entries(nextCost)) {
+      const resource = game.resources[resId];
+      if (resource) {
+        costParts.push(`${formatAmount(amount)} ${resource.icon}`);
+      }
+    }
+    costSpan.textContent = `Kosten: ${costParts.join(', ')}`;
+    
+    card.appendChild(upgradeBtn);
+    card.appendChild(costSpan);
+  } else {
+    // Maxed badge
+    const maxBadge = document.createElement('div');
+    maxBadge.style.cssText = 'margin-top: 8px; padding: 6px; background: rgba(251, 191, 36, 0.2); border-radius: 4px; text-align: center; font-size: 12px; color: var(--warning); font-weight: 600;';
+    maxBadge.textContent = '⭐ Maximum erreicht';
+    card.appendChild(maxBadge);
+  }
+  
+  return card;
+}
+
+// 📊 Get Upgrade Effect Summary
+function getUpgradeEffectSummary(game, def) {
+  const count = game.getUpgradeCount(def.id);
+  
+  if (def.type === 'efficiency') {
+    // Efficiency upgrade
+    const mult = game.getEfficiencyMultiplier(def.id, def.affects);
+    const bonus = ((mult - 1) * 100).toFixed(0);
+    
+    const resource = game.resources[def.affects];
+    const resourceName = resource ? resource.icon + ' ' + resource.name : def.affects;
+    
+    return `<strong>+${bonus}%</strong> ${resourceName} Produktion`;
+  }
+  
+  if (def.type === 'click') {
+    // Click upgrade
+    const resource = game.resources.energy;
+    if (resource) {
+      const baseClick = 1; // Basis-Click-Wert
+      const totalClick = resource.clickValue;
+      const bonus = totalClick - baseClick;
+      
+      return `<strong>+${formatRate(bonus)}</strong> Energie pro Klick`;
+    }
+  }
+  
+  if (def.type === 'space') {
+    // Space upgrade
+    const addedSpace = def.effect?.addSpace || 0;
+    return `<strong>+${addedSpace}</strong> Bauplätze`;
+  }
+  
+  return def.description;
 }
 
 // 🔧 Create Sort/Filter Controls
