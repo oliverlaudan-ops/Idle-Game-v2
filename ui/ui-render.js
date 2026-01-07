@@ -3,7 +3,7 @@
  * Alle Rendering- und Formatierungsfunktionen für Space Colonies
  * 🎨 Enhanced with visual hierarchy and better feedback
  * 🔧 QoL: Sorting, Filtering, Buy Max, Tooltips
- * 📊 Active Upgrades Summary View with Smart Grouping
+ * 📊 Active Upgrades in Right Sidebar with Auto-Save Indicator
  */
 
 import gameState from '../src/modules/game-state.js';
@@ -15,7 +15,8 @@ import { showAchievementNotification } from '../src/modules/notification-system.
 const uiState = {
   sortBy: 'default', // default | name | cost | production
   filterBy: 'all', // all | affordable | locked
-  showTooltips: true
+  showTooltips: true,
+  collapsedSections: {} // Track collapsed sections
 };
 
 // ========== Formatierungs-Hilfsfunktionen ==========
@@ -101,7 +102,34 @@ export function renderStatsBar(game) {
   `;
   game.statsBarEl.appendChild(spacePill);
   
+  // 💾 Auto-Save Indicator
+  const saveIndicator = document.createElement('div');
+  saveIndicator.id = 'save-indicator';
+  saveIndicator.className = 'stat-pill save-indicator';
+  saveIndicator.innerHTML = `<span class="label">💾 Auto-Save</span>`;
+  game.statsBarEl.appendChild(saveIndicator);
+  
   updateActionsStickyTop();
+}
+
+// 💾 Show Save Indicator
+export function showSaveIndicator() {
+  const indicator = document.getElementById('save-indicator');
+  if (indicator) {
+    indicator.classList.add('saving');
+    indicator.innerHTML = `<span class="label">💾 Speichern...</span>`;
+    
+    setTimeout(() => {
+      indicator.classList.remove('saving');
+      indicator.classList.add('saved');
+      indicator.innerHTML = `<span class="label">✅ Gespeichert</span>`;
+      
+      setTimeout(() => {
+        indicator.classList.remove('saved');
+        indicator.innerHTML = `<span class="label">💾 Auto-Save</span>`;
+      }, 2000);
+    }, 300);
+  }
 }
 
 // ========== Actions Rendering ==========
@@ -138,16 +166,27 @@ export function renderActions(game) {
   updateActionsStickyTop();
 }
 
-// ========== Upgrades Rendering with Sorting & Filtering ==========
+// ========== Upgrades Rendering with Sidebar Layout ==========
 
 export function renderUpgrades(game) {
   if (!game.upgradeGridEl) return;
   
   game.upgradeGridEl.innerHTML = '';
   
-  // 🔧 Add Sort/Filter Controls
+  // Create main layout with sidebar
+  const layout = document.createElement('div');
+  layout.style.cssText = 'display: grid; grid-template-columns: 1fr 320px; gap: 20px;';
+  
+  const mainColumn = document.createElement('div');
+  mainColumn.style.cssText = 'min-width: 0;';
+  
+  const sidebar = document.createElement('div');
+  sidebar.id = 'active-upgrades-sidebar';
+  sidebar.style.cssText = 'position: sticky; top: 120px; max-height: calc(100vh - 140px); overflow-y: auto;';
+  
+  // 🔧 Add Sort/Filter Controls to main column
   const controlsBar = createControlsBar();
-  game.upgradeGridEl.appendChild(controlsBar);
+  mainColumn.appendChild(controlsBar);
   
   // Gruppiere Gebäude nach Typ
   let generators = [];
@@ -178,15 +217,15 @@ export function renderUpgrades(game) {
     }
   }
   
-  // 📊 Aktive Upgrades (gekaufte Verbesserungen) - GROUPED
+  // 📊 Aktive Upgrades in RIGHT SIDEBAR
   const activeUpgrades = [...efficiency, ...click, ...space].filter(def => {
     const count = game.getUpgradeCount(def.id);
     return count > 0;
   });
   
   if (activeUpgrades.length > 0) {
-    const activeSection = createGroupedActiveUpgradesSection(game, activeUpgrades);
-    game.upgradeGridEl.appendChild(activeSection);
+    const activeSection = createSidebarActiveUpgrades(game, activeUpgrades);
+    sidebar.appendChild(activeSection);
   }
   
   // 🔧 Apply Filtering
@@ -195,63 +234,75 @@ export function renderUpgrades(game) {
   // 🔧 Apply Sorting
   generators = applySorting(game, generators);
   
-  // Spalte für Generatoren
+  // Spalte für Generatoren in MAIN COLUMN
   if (generators.length > 0) {
-    const col = document.createElement('div');
-    col.className = 'upgrade-col';
-    col.style.width = '100%';
-    col.style.maxWidth = '100%';
+    const section = createCollapsibleSection(
+      'buildings',
+      `🏭 Gebäude (${generators.length})`,
+      () => {
+        const container = document.createElement('div');
+        container.className = 'upgrade-grid';
+        container.style.cssText = 'display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;';
+        
+        generators.forEach(def => {
+          container.appendChild(createUpgradeCard(game, def));
+        });
+        
+        return container;
+      },
+      true // Initially expanded
+    );
     
-    const header = document.createElement('h4');
-    header.textContent = `🏭 Gebäude (${generators.length})`;
-    col.appendChild(header);
-    
-    generators.forEach(def => {
-      col.appendChild(createUpgradeCard(game, def));
-    });
-    
-    game.upgradeGridEl.appendChild(col);
+    mainColumn.appendChild(section);
   }
   
-  // Spalte für Upgrades (nur NICHT gekaufte)
+  // Spalte für Upgrades (nur NICHT gekaufte) in MAIN COLUMN
   const availableUpgrades = [...efficiency, ...click, ...space].filter(def => {
     const count = game.getUpgradeCount(def.id);
     return count === 0 || (def.maxCount !== -1 && count < def.maxCount);
   });
   
   if (availableUpgrades.length > 0) {
-    const col = document.createElement('div');
-    col.className = 'upgrade-col';
-    col.style.width = '100%';
-    col.style.maxWidth = '100%';
+    const section = createCollapsibleSection(
+      'improvements',
+      `⬆️ Verfügbare Verbesserungen (${availableUpgrades.length})`,
+      () => {
+        const container = document.createElement('div');
+        container.className = 'upgrade-grid';
+        container.style.cssText = 'display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;';
+        
+        availableUpgrades.forEach(def => {
+          container.appendChild(createUpgradeCard(game, def));
+        });
+        
+        return container;
+      },
+      true // Initially expanded
+    );
     
-    const header = document.createElement('h4');
-    header.textContent = '⬆️ Verfügbare Verbesserungen';
-    col.appendChild(header);
-    
-    availableUpgrades.forEach(def => {
-      col.appendChild(createUpgradeCard(game, def));
-    });
-    
-    game.upgradeGridEl.appendChild(col);
+    mainColumn.appendChild(section);
   }
+  
+  layout.appendChild(mainColumn);
+  layout.appendChild(sidebar);
+  game.upgradeGridEl.appendChild(layout);
 }
 
-// 📊 Create GROUPED Active Upgrades Summary Section
-function createGroupedActiveUpgradesSection(game, activeUpgrades) {
+// 📊 Create Sidebar Active Upgrades
+function createSidebarActiveUpgrades(game, activeUpgrades) {
   const section = document.createElement('div');
-  section.style.cssText = 'margin-bottom: 24px; padding: 16px; background: linear-gradient(135deg, var(--bg-panel-soft) 0%, var(--bg-panel) 100%); border-radius: 12px; border: 2px solid var(--success);';
+  section.style.cssText = 'background: linear-gradient(135deg, var(--bg-panel-soft) 0%, var(--bg-panel) 100%); border-radius: 12px; border: 2px solid var(--success); padding: 16px;';
   
   const header = document.createElement('div');
-  header.style.cssText = 'display: flex; align-items: center; gap: 12px; margin-bottom: 16px;';
+  header.style.cssText = 'display: flex; align-items: center; gap: 8px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border-soft);';
   
   const icon = document.createElement('div');
-  icon.style.cssText = 'font-size: 24px;';
+  icon.style.cssText = 'font-size: 20px;';
   icon.textContent = '✅';
   
   const title = document.createElement('h3');
-  title.style.cssText = 'margin: 0; color: var(--success); font-size: 18px;';
-  title.textContent = `Aktive Verbesserungen`;
+  title.style.cssText = 'margin: 0; color: var(--success); font-size: 16px; font-weight: 600;';
+  title.textContent = 'Aktive Boni';
   
   header.appendChild(icon);
   header.appendChild(title);
@@ -260,16 +311,95 @@ function createGroupedActiveUpgradesSection(game, activeUpgrades) {
   // Group upgrades by base name
   const grouped = groupUpgradesByBaseName(activeUpgrades);
   
-  // Grid für gruppierte aktive Upgrades
-  const grid = document.createElement('div');
-  grid.style.cssText = 'display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;';
+  // Render grouped cards (compact for sidebar)
+  const container = document.createElement('div');
+  container.style.cssText = 'display: flex; flex-direction: column; gap: 10px;';
   
   for (const group of grouped) {
-    const card = createGroupedActiveUpgradeCard(game, group);
-    grid.appendChild(card);
+    const card = createSidebarGroupCard(game, group);
+    container.appendChild(card);
   }
   
-  section.appendChild(grid);
+  section.appendChild(container);
+  
+  return section;
+}
+
+// 📊 Create Compact Sidebar Group Card
+function createSidebarGroupCard(game, group) {
+  const card = document.createElement('div');
+  card.style.cssText = 'padding: 10px; background: var(--bg-panel); border-radius: 6px; border: 1px solid var(--border-soft);';
+  
+  // Header
+  const header = document.createElement('div');
+  header.style.cssText = 'display: flex; align-items: center; gap: 6px; margin-bottom: 6px;';
+  
+  const iconSpan = document.createElement('span');
+  iconSpan.style.fontSize = '16px';
+  iconSpan.textContent = group.icon;
+  
+  const nameSpan = document.createElement('span');
+  nameSpan.style.cssText = 'font-weight: 600; color: var(--text-main); font-size: 13px;';
+  nameSpan.textContent = group.baseName;
+  
+  const countBadge = document.createElement('span');
+  countBadge.style.cssText = 'margin-left: auto; font-size: 10px; padding: 2px 6px; background: var(--accent); color: var(--bg-main); border-radius: 10px; font-weight: 600;';
+  countBadge.textContent = group.upgrades.length;
+  
+  header.appendChild(iconSpan);
+  header.appendChild(nameSpan);
+  header.appendChild(countBadge);
+  card.appendChild(header);
+  
+  // Effect summary
+  const totalEffect = calculateGroupedEffect(game, group);
+  
+  if (totalEffect) {
+    const effectDiv = document.createElement('div');
+    effectDiv.style.cssText = 'padding: 6px 8px; background: rgba(52, 211, 153, 0.1); border-left: 2px solid var(--success); border-radius: 4px; font-size: 12px; color: var(--text-muted);';
+    effectDiv.innerHTML = totalEffect;
+    card.appendChild(effectDiv);
+  }
+  
+  return card;
+}
+
+// 🔧 Create Collapsible Section
+function createCollapsibleSection(id, title, contentFn, initiallyExpanded = true) {
+  const section = document.createElement('div');
+  section.className = 'collapsible-section';
+  section.style.cssText = 'margin-bottom: 20px;';
+  
+  // Check if collapsed state exists
+  const isCollapsed = uiState.collapsedSections[id] !== undefined ? uiState.collapsedSections[id] : !initiallyExpanded;
+  
+  const header = document.createElement('div');
+  header.style.cssText = 'display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: var(--bg-panel-soft); border-radius: 8px; border: 1px solid var(--border-soft); cursor: pointer; user-select: none; margin-bottom: 12px;';
+  
+  const collapseIcon = document.createElement('span');
+  collapseIcon.style.cssText = 'font-size: 14px; transition: transform 0.2s;';
+  collapseIcon.textContent = isCollapsed ? '▶' : '▼';
+  
+  const titleSpan = document.createElement('h4');
+  titleSpan.style.cssText = 'margin: 0; font-size: 16px; font-weight: 600;';
+  titleSpan.textContent = title;
+  
+  header.appendChild(collapseIcon);
+  header.appendChild(titleSpan);
+  
+  const contentDiv = document.createElement('div');
+  contentDiv.style.display = isCollapsed ? 'none' : 'block';
+  contentDiv.appendChild(contentFn());
+  
+  header.onclick = () => {
+    const isNowCollapsed = contentDiv.style.display !== 'none';
+    contentDiv.style.display = isNowCollapsed ? 'none' : 'block';
+    collapseIcon.textContent = isNowCollapsed ? '▶' : '▼';
+    uiState.collapsedSections[id] = isNowCollapsed;
+  };
+  
+  section.appendChild(header);
+  section.appendChild(contentDiv);
   
   return section;
 }
@@ -301,63 +431,6 @@ function groupUpgradesByBaseName(upgrades) {
   });
 }
 
-// 📊 Create GROUPED Active Upgrade Card
-function createGroupedActiveUpgradeCard(game, group) {
-  const card = document.createElement('div');
-  card.style.cssText = 'padding: 12px; background: var(--bg-panel); border-radius: 8px; border: 1px solid var(--border-soft);';
-  
-  // Header with icon and base name
-  const header = document.createElement('div');
-  header.style.cssText = 'display: flex; align-items: center; gap: 8px; margin-bottom: 8px;';
-  
-  const iconSpan = document.createElement('span');
-  iconSpan.style.fontSize = '20px';
-  iconSpan.textContent = group.icon;
-  
-  const nameSpan = document.createElement('span');
-  nameSpan.style.cssText = 'font-weight: 600; color: var(--text-main);';
-  nameSpan.textContent = group.baseName;
-  
-  // Count badge (total upgrades in group)
-  const countBadge = document.createElement('span');
-  countBadge.className = 'count-badge';
-  countBadge.style.cssText = 'margin-left: auto; font-size: 12px;';
-  countBadge.textContent = `${group.upgrades.length} Stufe${group.upgrades.length > 1 ? 'n' : ''}`;
-  
-  header.appendChild(iconSpan);
-  header.appendChild(nameSpan);
-  header.appendChild(countBadge);
-  card.appendChild(header);
-  
-  // Calculate TOTAL effect from all upgrades in group
-  const totalEffect = calculateGroupedEffect(game, group);
-  
-  if (totalEffect) {
-    const effectDiv = document.createElement('div');
-    effectDiv.style.cssText = 'padding: 8px; background: rgba(52, 211, 153, 0.1); border-left: 3px solid var(--success); border-radius: 4px; font-size: 13px; color: var(--text-muted);';
-    effectDiv.innerHTML = totalEffect;
-    card.appendChild(effectDiv);
-  }
-  
-  // Show individual upgrade levels
-  const detailsDiv = document.createElement('div');
-  detailsDiv.style.cssText = 'margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border-soft); font-size: 12px; color: var(--text-muted);';
-  
-  const levelsList = group.upgrades.map(def => {
-    const count = game.getUpgradeCount(def.id);
-    const maxed = def.maxCount !== -1 && count >= def.maxCount;
-    return `<div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-      <span>${def.name}</span>
-      <span style="color: ${maxed ? 'var(--warning)' : 'var(--success)'};">Level ${count}${maxed ? ' ⭐' : ''}</span>
-    </div>`;
-  }).join('');
-  
-  detailsDiv.innerHTML = levelsList;
-  card.appendChild(detailsDiv);
-  
-  return card;
-}
-
 // 📊 Calculate total effect for a group
 function calculateGroupedEffect(game, group) {
   if (group.type === 'efficiency') {
@@ -381,7 +454,7 @@ function calculateGroupedEffect(game, group) {
     });
     
     const bonus = ((totalMultiplier - 1) * 100).toFixed(0);
-    return `<strong>+${bonus}%</strong> ${targetName} Produktion`;
+    return `<strong>+${bonus}%</strong> ${targetName}`;
   }
   
   if (group.type === 'click') {
@@ -395,12 +468,9 @@ function calculateGroupedEffect(game, group) {
       }
     });
     
-    const resource = game.resources.energy;
-    if (resource) {
-      const baseClick = 1;
-      const totalClick = baseClick + totalBonus;
-      return `<strong>+${totalBonus}</strong> Energie pro Klick (Total: ${totalClick}/Klick)`;
-    }
+    const baseClick = 1;
+    const totalClick = baseClick + totalBonus;
+    return `<strong>+${totalBonus}</strong> pro Klick (${totalClick}/Klick)`;
   }
   
   if (group.type === 'space') {
