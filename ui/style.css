@@ -18,6 +18,7 @@
   --danger: #ff4b6a;
   --success: #4ade80;
   --warning: #fbbf24;
+  --info: #60a5fa;
 }
 
 /* Light Theme Variables */
@@ -35,6 +36,7 @@
   --danger: #e53e3e;
   --success: #38a169;
   --warning: #d69e2e;
+  --info: #3b82f6;
 }
 
 /* Reset & Basics */
@@ -302,7 +304,8 @@ button:disabled {
   padding: 12px;
   margin-bottom: 10px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  position: relative;
 }
 
 .card:hover {
@@ -311,10 +314,50 @@ button:disabled {
   border-color: var(--accent-soft);
 }
 
+/* 🎯 Size Indicator Badge */
+.card .size-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.card .size-badge.size-1 { border-color: #4ade80; color: #4ade80; background: rgba(74, 222, 128, 0.1); }
+.card .size-badge.size-2 { border-color: #fbbf24; color: #fbbf24; background: rgba(251, 191, 36, 0.1); }
+.card .size-badge.size-3 { border-color: #ff4b6a; color: #ff4b6a; background: rgba(255, 75, 106, 0.1); }
+
+/* 💰 Affordability States */
+.card.affordable {
+  border-color: var(--success);
+  background: linear-gradient(135deg, var(--bg-card), rgba(74, 222, 128, 0.03));
+}
+
+.card.partially-affordable {
+  border-color: var(--warning);
+  background: linear-gradient(135deg, var(--bg-card), rgba(251, 191, 36, 0.03));
+}
+
+.card.not-affordable {
+  border-color: var(--border-soft);
+  opacity: 0.7;
+}
+
 .card h3 {
   margin: 0 0 6px;
   font-size: 15px;
   color: var(--text-main);
+  padding-right: 60px; /* Space for size badge */
 }
 
 .card p {
@@ -329,10 +372,44 @@ button:disabled {
   color: var(--text-muted);
 }
 
+/* 📈 Production Info with Highlighting */
 .card .production-info {
   color: var(--success);
-  font-weight: 500;
+  font-weight: 600;
+  font-size: 13px;
+  background: rgba(74, 222, 128, 0.08);
+  padding: 6px 8px;
+  border-radius: 6px;
+  border-left: 3px solid var(--success);
+  margin-top: 6px;
+}
+
+/* 💸 Cost Display with Color Coding */
+.card .cost-display {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0;
+}
+
+.card .cost-item {
+  padding: 4px 8px;
+  border-radius: 6px;
   font-size: 12px;
+  font-weight: 600;
+  border: 1px solid;
+}
+
+.card .cost-item.affordable {
+  background: rgba(74, 222, 128, 0.1);
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.card .cost-item.not-affordable {
+  background: rgba(255, 75, 106, 0.1);
+  border-color: var(--danger);
+  color: var(--danger);
 }
 
 /* Research Cards */
@@ -357,6 +434,18 @@ button:disabled {
   background: var(--bg-panel-soft);
 }
 
+/* 🔄 Building Count Badge */
+.card .count-badge {
+  display: inline-block;
+  background: var(--info);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  margin-left: 6px;
+}
+
 /* Buy Button in Cards */
 .buy-btn {
   width: 100%;
@@ -366,11 +455,55 @@ button:disabled {
   background: linear-gradient(135deg, var(--accent), var(--accent-glow));
   border: 1px solid var(--accent-soft);
   color: var(--bg-main);
+  position: relative;
+  overflow: hidden;
+}
+
+.buy-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.3s ease, height 0.3s ease;
+}
+
+.buy-btn:hover:not(:disabled)::before {
+  width: 300px;
+  height: 300px;
 }
 
 .buy-btn:hover:not(:disabled) {
   background: linear-gradient(135deg, var(--accent-glow), var(--accent));
   box-shadow: 0 0 16px var(--accent-glow);
+  transform: translateY(-2px);
+}
+
+.buy-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* 💥 Demolish Button */
+.demolish-btn {
+  width: 40px;
+  padding: 8px;
+  background: linear-gradient(135deg, var(--danger), #d32f2f);
+  border: 1px solid rgba(255, 75, 106, 0.3);
+  color: white;
+  cursor: pointer;
+  font-size: 16px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.demolish-btn:hover {
+  background: linear-gradient(135deg, #ff1744, var(--danger));
+  box-shadow: 0 0 12px rgba(255, 75, 106, 0.5);
+  transform: scale(1.05);
 }
 
 /* ================================================
@@ -379,18 +512,20 @@ button:disabled {
 
 .progress-bar {
   width: 100%;
-  height: 4px;
+  height: 6px;
   background: rgba(255, 255, 255, 0.05);
-  border-radius: 2px;
+  border-radius: 3px;
   margin-top: 8px;
   overflow: hidden;
+  border: 1px solid var(--border-soft);
 }
 
 .progress {
   height: 100%;
   background: linear-gradient(90deg, var(--accent), var(--accent-glow));
   transition: width 0.3s ease;
-  border-radius: 2px;
+  border-radius: 3px;
+  box-shadow: 0 0 8px var(--accent-glow);
 }
 
 /* ================================================
@@ -937,6 +1072,45 @@ kbd {
   box-shadow:
     0 0 0 1px var(--accent-soft),
     0 0 12px var(--accent-soft);
+}
+
+/* ================================================
+   Animations
+   ================================================ */
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOut {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.pulse {
+  animation: pulse 1s ease-in-out infinite;
 }
 
 /* ================================================
