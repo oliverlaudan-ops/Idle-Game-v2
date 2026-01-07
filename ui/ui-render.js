@@ -2,12 +2,20 @@
  * ui-render.js
  * Alle Rendering- und Formatierungsfunktionen für Space Colonies
  * 🎨 Enhanced with visual hierarchy and better feedback
+ * 🔧 QoL: Sorting, Filtering, Buy Max, Tooltips
  */
 
 import gameState from '../src/modules/game-state.js';
 import { calculateUpgradeCost } from '../src/modules/upgrades-def.js';
 import achievementManager from '../src/modules/achievement-manager.js';
 import { showAchievementNotification } from '../src/modules/notification-system.js';
+
+// 🔧 Global UI State
+const uiState = {
+  sortBy: 'default', // default | name | cost | production
+  filterBy: 'all', // all | affordable | locked
+  showTooltips: true
+};
 
 // ========== Formatierungs-Hilfsfunktionen ==========
 
@@ -129,15 +137,19 @@ export function renderActions(game) {
   updateActionsStickyTop();
 }
 
-// ========== Upgrades Rendering ==========
+// ========== Upgrades Rendering with Sorting & Filtering ==========
 
 export function renderUpgrades(game) {
   if (!game.upgradeGridEl) return;
   
   game.upgradeGridEl.innerHTML = '';
   
+  // 🔧 Add Sort/Filter Controls
+  const controlsBar = createControlsBar();
+  game.upgradeGridEl.appendChild(controlsBar);
+  
   // Gruppiere Gebäude nach Typ
-  const generators = [];
+  let generators = [];
   const efficiency = [];
   const space = [];
   const click = [];
@@ -165,13 +177,21 @@ export function renderUpgrades(game) {
     }
   }
   
+  // 🔧 Apply Filtering
+  generators = applyFilter(game, generators);
+  
+  // 🔧 Apply Sorting
+  generators = applySorting(game, generators);
+  
   // Spalte für Generatoren
   if (generators.length > 0) {
     const col = document.createElement('div');
     col.className = 'upgrade-col';
+    col.style.width = '100%';
+    col.style.maxWidth = '100%';
     
     const header = document.createElement('h4');
-    header.textContent = '🏭 Gebäude';
+    header.textContent = `🏭 Gebäude (${generators.length})`;
     col.appendChild(header);
     
     generators.forEach(def => {
@@ -186,6 +206,8 @@ export function renderUpgrades(game) {
   if (upgradesList.length > 0) {
     const col = document.createElement('div');
     col.className = 'upgrade-col';
+    col.style.width = '100%';
+    col.style.maxWidth = '100%';
     
     const header = document.createElement('h4');
     header.textContent = '⬆️ Verbesserungen';
@@ -197,6 +219,163 @@ export function renderUpgrades(game) {
     
     game.upgradeGridEl.appendChild(col);
   }
+}
+
+// 🔧 Create Sort/Filter Controls
+function createControlsBar() {
+  const bar = document.createElement('div');
+  bar.style.cssText = 'display: flex; gap: 12px; margin-bottom: 16px; padding: 12px; background: var(--bg-panel-soft); border-radius: 8px; border: 1px solid var(--border-soft); flex-wrap: wrap; align-items: center;';
+  
+  // Sort Label
+  const sortLabel = document.createElement('span');
+  sortLabel.textContent = '🔀 Sortierung:';
+  sortLabel.style.cssText = 'font-weight: 600; color: var(--text-main);';
+  bar.appendChild(sortLabel);
+  
+  // Sort Buttons
+  const sortOptions = [
+    { id: 'default', label: 'Standard', icon: '📋' },
+    { id: 'name', label: 'Name', icon: '🔤' },
+    { id: 'cost', label: 'Preis', icon: '💰' },
+    { id: 'production', label: 'Produktion', icon: '📈' }
+  ];
+  
+  sortOptions.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.textContent = `${opt.icon} ${opt.label}`;
+    btn.style.cssText = 'padding: 6px 12px; font-size: 13px;';
+    
+    if (uiState.sortBy === opt.id) {
+      btn.style.background = 'var(--accent)';
+      btn.style.color = 'var(--bg-main)';
+    }
+    
+    btn.onclick = () => {
+      uiState.sortBy = opt.id;
+      const game = window.game; // Global reference
+      renderUpgrades(game);
+    };
+    
+    bar.appendChild(btn);
+  });
+  
+  // Divider
+  const divider = document.createElement('div');
+  divider.style.cssText = 'width: 1px; height: 24px; background: var(--border-soft); margin: 0 8px;';
+  bar.appendChild(divider);
+  
+  // Filter Label
+  const filterLabel = document.createElement('span');
+  filterLabel.textContent = '🔍 Filter:';
+  filterLabel.style.cssText = 'font-weight: 600; color: var(--text-main);';
+  bar.appendChild(filterLabel);
+  
+  // Filter Buttons
+  const filterOptions = [
+    { id: 'all', label: 'Alle', icon: '🌐' },
+    { id: 'affordable', label: 'Bezahlbar', icon: '✅' },
+    { id: 'locked', label: 'Gesperrt', icon: '🔒' }
+  ];
+  
+  filterOptions.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.textContent = `${opt.icon} ${opt.label}`;
+    btn.style.cssText = 'padding: 6px 12px; font-size: 13px;';
+    
+    if (uiState.filterBy === opt.id) {
+      btn.style.background = 'var(--accent)';
+      btn.style.color = 'var(--bg-main)';
+    }
+    
+    btn.onclick = () => {
+      uiState.filterBy = opt.id;
+      const game = window.game;
+      renderUpgrades(game);
+    };
+    
+    bar.appendChild(btn);
+  });
+  
+  return bar;
+}
+
+// 🔧 Apply Filtering
+function applyFilter(game, buildings) {
+  if (uiState.filterBy === 'all') return buildings;
+  
+  return buildings.filter(def => {
+    if (uiState.filterBy === 'affordable') {
+      return game.canBuyUpgrade(def.id);
+    }
+    if (uiState.filterBy === 'locked') {
+      return !game.canBuyUpgrade(def.id);
+    }
+    return true;
+  });
+}
+
+// 🔧 Apply Sorting
+function applySorting(game, buildings) {
+  if (uiState.sortBy === 'default') return buildings;
+  
+  const sorted = [...buildings];
+  
+  if (uiState.sortBy === 'name') {
+    sorted.sort((a, b) => a.name.localeCompare(b.name));
+  }
+  
+  if (uiState.sortBy === 'cost') {
+    sorted.sort((a, b) => {
+      const costA = calculateUpgradeCost(a, game.getUpgradeCount(a.id));
+      const costB = calculateUpgradeCost(b, game.getUpgradeCount(b.id));
+      
+      // Sort by first resource cost
+      const firstCostA = Object.values(costA)[0] || 0;
+      const firstCostB = Object.values(costB)[0] || 0;
+      
+      return firstCostA - firstCostB;
+    });
+  }
+  
+  if (uiState.sortBy === 'production') {
+    sorted.sort((a, b) => {
+      // Calculate total production value
+      const prodA = calculateTotalProduction(game, a);
+      const prodB = calculateTotalProduction(game, b);
+      
+      return prodB - prodA; // Higher production first
+    });
+  }
+  
+  return sorted;
+}
+
+function calculateTotalProduction(game, def) {
+  if (!def.produces) return 0;
+  
+  let total = 0;
+  const count = game.getUpgradeCount(def.id);
+  
+  if (count === 0) return 0;
+  
+  for (const [resourceId, baseAmount] of Object.entries(def.produces)) {
+    let production = baseAmount * count;
+    production *= game.getEfficiencyMultiplier(def.id, resourceId);
+    production *= game.getResearchMultiplier(def.id, resourceId);
+    
+    if (game.prestigeBonuses) {
+      production *= (1 + game.prestigeBonuses.globalProduction);
+      production *= (1 + game.prestigeBonuses.buildingProduction);
+      
+      if (game.prestigeBonuses.resourceProduction[resourceId]) {
+        production *= (1 + game.prestigeBonuses.resourceProduction[resourceId]);
+      }
+    }
+    
+    total += production;
+  }
+  
+  return total;
 }
 
 // ========== Research Rendering ==========
@@ -448,7 +627,7 @@ export function renderStatistics(game) {
   container.appendChild(prestigeSection);
 }
 
-// ========== Upgrade Card Creation (🆕 ENHANCED) ==========
+// ========== Upgrade Card Creation (🆕 ENHANCED with Buy Max & Tooltips) ==========
 
 function createUpgradeCard(game, def) {
   const card = document.createElement('div');
@@ -489,6 +668,11 @@ function createUpgradeCard(game, def) {
   }
   
   card.appendChild(titleContainer);
+  
+  // 🆕 Tooltip mit detaillierten Infos
+  if (uiState.showTooltips) {
+    card.title = generateTooltip(game, def, currentCount);
+  }
   
   // Beschreibung
   const desc = document.createElement('p');
@@ -568,6 +752,35 @@ function createUpgradeCard(game, def) {
   // Button-Container für Kauf & Abreißen
   const btnContainer = document.createElement('div');
   btnContainer.style.cssText = 'display: flex; gap: 8px; margin-top: 12px;';
+  
+  // 🆕 Buy Max Button (nur für günstige Gebäude)
+  const canShowBuyMax = def.size > 0 && affordability.canAffordAll;
+  
+  if (canShowBuyMax) {
+    const buyMaxBtn = document.createElement('button');
+    buyMaxBtn.className = 'buy-btn';
+    buyMaxBtn.style.flex = '0.5';
+    buyMaxBtn.textContent = '🔝 Max';
+    buyMaxBtn.title = 'Kaufe so viele wie möglich';
+    
+    buyMaxBtn.onclick = () => {
+      let bought = 0;
+      while (game.canBuyUpgrade(def.id) && bought < 100) { // Limit 100 für Performance
+        if (game.buyUpgrade(def.id)) {
+          bought++;
+        } else {
+          break;
+        }
+      }
+      
+      if (bought > 0) {
+        renderAll(game);
+        showBulkBuyNotification(def, bought);
+      }
+    };
+    
+    btnContainer.appendChild(buyMaxBtn);
+  }
   
   // Kauf-Button
   const buyBtn = document.createElement('button');
@@ -669,6 +882,58 @@ function createUpgradeCard(game, def) {
   }
   
   return card;
+}
+
+// 🆕 Generate Detailed Tooltip
+function generateTooltip(game, def, currentCount) {
+  const lines = [];
+  
+  lines.push(`${def.icon} ${def.name}`);
+  lines.push(`Stufe: ${currentCount}`);
+  
+  if (def.produces) {
+    lines.push('\n📊 Produktion pro Gebäude:');
+    
+    for (const [resourceId, baseAmount] of Object.entries(def.produces)) {
+      const resource = game.resources[resourceId];
+      if (!resource) continue;
+      
+      let production = baseAmount;
+      
+      const effMult = game.getEfficiencyMultiplier(def.id, resourceId);
+      const resMult = game.getResearchMultiplier(def.id, resourceId);
+      
+      let totalMult = effMult * resMult;
+      
+      if (game.prestigeBonuses) {
+        totalMult *= (1 + game.prestigeBonuses.globalProduction);
+        totalMult *= (1 + game.prestigeBonuses.buildingProduction);
+        
+        if (game.prestigeBonuses.resourceProduction[resourceId]) {
+          totalMult *= (1 + game.prestigeBonuses.resourceProduction[resourceId]);
+        }
+      }
+      
+      production *= totalMult;
+      
+      lines.push(`  ${resource.icon} ${formatRate(baseAmount)}/s → ${formatRate(production)}/s (${(totalMult * 100).toFixed(0)}% Bonus)`);
+    }
+  }
+  
+  if (def.size > 0) {
+    lines.push(`\n📐 Benötigt ${def.size}×${def.size} Bauplätze`);
+  }
+  
+  const nextCost = calculateUpgradeCost(def, currentCount);
+  lines.push('\n💰 Nächste Kosten:');
+  for (const [resId, amount] of Object.entries(nextCost)) {
+    const resource = game.resources[resId];
+    if (resource) {
+      lines.push(`  ${resource.icon} ${formatAmount(amount)}`);
+    }
+  }
+  
+  return lines.join('\n');
 }
 
 // 🆕 Helper: Affordability Status berechnen
@@ -1040,6 +1305,9 @@ export function updateActionsStickyTop() {
 // ========== Render All ==========
 
 export function renderAll(game) {
+  // 🆕 Make game globally accessible for controls
+  window.game = game;
+  
   renderStatsBar(game);
   renderActions(game);
   renderUpgrades(game);
